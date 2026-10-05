@@ -27,11 +27,11 @@
           <i class="fa-solid fa-magnifying-glass"></i><span>Search chats</span><span class="shortcut">Ctrl K</span>
         </button>
 
-        <button class="sidebar-train-btn" id="sidebarTrainBtn">
-          <i class="fa-solid fa-brain"></i>
-          <div class="train-btn-content">
-            <strong>Trainable Brain</strong>
-            <small id="sidebarMemoryLabel">1 active rule • Self-training</small>
+        <button class="sidebar-llm-btn" id="sidebarLLMBtn">
+          <i class="fa-solid fa-microchip"></i>
+          <div class="llm-btn-content">
+            <strong>Transformer LLM</strong>
+            <small id="sidebarLLMStatus">Continuous Self-Training</small>
           </div>
           <span class="train-pill">Active</span>
         </button>
@@ -44,12 +44,12 @@
         <div class="sidebar-footer">
           <button class="account-card" id="accountButton">
             <div class="avatar">A</div>
-            <div class="account-text"><strong>Arya</strong><small>Continuous Learning AI</small></div>
+            <div class="account-text"><strong>Arya</strong><small>Transformer LLM</small></div>
             <i class="fa-solid fa-ellipsis"></i>
           </button>
           <div class="account-menu" id="accountMenu">
-            <div class="account-heading"><div class="avatar">A</div><div><strong>Arya</strong><small>Continuous Learning AI</small></div></div>
-            <button id="accountMenuTrain"><i class="fa-solid fa-brain"></i> Train Brain</button>
+            <div class="account-heading"><div class="avatar">A</div><div><strong>Arya</strong><small>Continuous Self-Training AI</small></div></div>
+            <button id="accountMenuLLM"><i class="fa-solid fa-microchip"></i> Transformer Architecture</button>
             <button id="accountMenuSettings"><i class="fa-solid fa-gear"></i> Settings</button>
             <button id="accountMenuExport"><i class="fa-solid fa-download"></i> Export Chat</button>
             <button id="accountMenuZip"><i class="fa-solid fa-file-zipper"></i> Download Project ZIP</button>
@@ -60,22 +60,36 @@
       <main class="chat-panel">
         <header class="topbar">
           <button class="mobile-menu" id="mobileMenu" aria-label="Open sidebar"><i class="fa-solid fa-bars"></i></button>
-          <div class="model-info" id="modelSelectorBtn">
+          <div class="model-info" id="modelSelectorBtn" title="Switch Frontier LLM Engine">
             <span class="status online"></span>
-            <strong>Kira Brain</strong>
-            <span class="engine-badge" id="engineBadge">Adaptive AI</span>
+            <strong id="currentModelLabel">GPT-6 Astra Omni</strong>
+            <span class="engine-badge" id="engineBadge">MoE SwiGLU</span>
+            <i class="fa-solid fa-chevron-down model-chevron"></i>
+            <div class="model-dropdown" id="modelDropdown">
+              <button type="button" class="model-opt active" data-model="gpt6-astra">
+                <i class="fa-solid fa-bolt"></i>
+                <div><strong>GPT-6 Astra Omni</strong><small>Multimodal perception, MoE SwiGLU, fast inference</small></div>
+              </button>
+              <button type="button" class="model-opt" data-model="gpt6-thinking">
+                <i class="fa-solid fa-brain"></i>
+                <div><strong>GPT-6 Thinking (o-Series)</strong><small>Deep autonomous Chain-of-Thought & verified reasoning</small></div>
+              </button>
+              <button type="button" class="model-opt" data-model="astra-realtime">
+                <i class="fa-solid fa-wave-square"></i>
+                <div><strong>Astra Realtime Stream</strong><small>Continuous speech, vision frames & sensor fusion</small></div>
+              </button>
+            </div>
           </div>
 
-          <div class="bg-training-pill" id="bgTrainingPill" title="Background Self-Training Active">
-            <span class="training-pulse"></span>
-            <span id="bgTrainingEpochText">Self-Training in Background</span>
+          <div class="llm-live-ticker" id="llmLiveTicker" title="View Frontier Architecture & Real-Time Training Studio">
+            <span class="ticker-pulse"></span>
+            <span id="tickerText">Step 1 • Loss 2.38 • RoPE / MoE SwiGLU</span>
           </div>
 
           <div class="top-actions">
-            <button type="button" class="top-action-btn brain-btn" id="openBrainBtn" title="Train Kira & View Learned Memories">
-              <i class="fa-solid fa-brain"></i>
-              <span>Brain</span>
-              <span class="brain-badge" id="brainBadgeCount">1</span>
+            <button type="button" class="top-action-btn transformer-btn" id="openLLMModalBtn" title="Inspect Frontier Layers, GQA, MoE Router, & 4-Pillar Training">
+              <i class="fa-solid fa-microchip"></i>
+              <span>Frontier Studio</span>
             </button>
             <button type="button" class="top-action-btn summarize-btn" id="summarizeChatBtn" title="Summarize conversation">
               <i class="fa-solid fa-list-check"></i>
@@ -93,11 +107,16 @@
         <section id="chat" class="chat-window" aria-live="polite">
           <div class="welcome-hero" id="welcomeHero">
             <div class="hero-brand">
-              <div class="hero-icon"><i class="fa-solid fa-brain"></i></div>
-              <h2>How can I help you today?</h2>
-              <p>I have my own adaptive brain, live web search grounding, mathematical reasoning, and full-stack coding capabilities. I continuously learn and self-train in the background with every message.</p>
+              <div class="hero-icon"><i class="fa-solid fa-microchip"></i></div>
+              <h2>Kira Frontier LLM</h2>
+              <p>Engineered to the <strong>GPT-6 & Google Astra specification</strong>: Multimodal TikToken BPE Tokenizer, Rotary Position Embeddings (RoPE), Pre-RMSNorm, Grouped-Query Attention (GQA) with KV-Cache, and Sparse Mixture of Experts (MoE with 8 SwiGLU experts). Continuous background training & 4-Pillar fine-tuning studio.</p>
             </div>
             <div class="prompt-grid">
+              <button class="prompt-card" data-prompt="Explain the exact structure of a proper frontier LLM like GPT-6 and Astra, and how can I train it?">
+                <i class="fa-solid fa-network-wired"></i>
+                <strong>Frontier Architecture</strong>
+                <span>GPT-6, Astra MoE, RoPE & 4-Pillar Training</span>
+              </button>
               <button class="prompt-card" data-prompt="Solve this step-by-step with formulas: Find the roots of 3x^2 - 12x + 9 = 0 and explain the quadratic formula derivation.">
                 <i class="fa-solid fa-square-root-variable"></i>
                 <strong>Solve Math Problem</strong>
@@ -108,15 +127,10 @@
                 <strong>Write Production Code</strong>
                 <span>Idiomatic algorithms with complexity</span>
               </button>
-              <button class="prompt-card" data-prompt="Summarize the core concepts of Quantum Computing vs Classical Computing in a concise executive table with key takeaways.">
-                <i class="fa-solid fa-table-columns"></i>
-                <strong>Executive Summary</strong>
-                <span>Comparative matrix & conclusions</span>
-              </button>
-              <button class="prompt-card" data-prompt="Search the latest advancements in artificial intelligence models this year and synthesize the key breakthroughs with sources.">
-                <i class="fa-solid fa-globe"></i>
-                <strong>Web Research</strong>
-                <span>Grounded factual analysis with sources</span>
+              <button class="prompt-card" data-prompt="How do Rotary Positional Embeddings (RoPE) and Grouped-Query Attention (GQA) work compared to classical Transformers?">
+                <i class="fa-solid fa-microchip"></i>
+                <strong>RoPE & GQA Deep Dive</strong>
+                <span>Mathematical formulation & KV-cache efficiency</span>
               </button>
             </div>
           </div>
@@ -128,17 +142,18 @@
             <button type="button" class="chip" data-chip="solve math">📐 Math</button>
             <button type="button" class="chip" data-chip="write code">💻 Code</button>
             <button type="button" class="chip" data-chip="executive summary">📋 Summary</button>
-            <button type="button" class="chip" data-chip="train rule">🧠 Train Rule</button>
+            <button type="button" class="chip" data-chip="train rule">⚡ Feed Fact</button>
             <button type="button" class="chip" data-chip="compare">⚖️ Compare</button>
           </div>
 
           <form id="composer" class="composer">
             <div id="attachmentList" class="attachment-list"></div>
-            <textarea id="prompt" rows="1" placeholder="Message Kira... (Ask anything, solve math, code, or train a rule)"></textarea>
+            <textarea id="prompt" rows="1" placeholder="Message Kira Transformer... (Ask anything, solve math, code, or converse)"></textarea>
             <div class="composer-actions">
               <input id="fileInput" type="file" multiple hidden />
               <button type="button" class="secondary attach-btn" id="attachButton" title="Attach files or images"><i class="fa-solid fa-paperclip"></i><span>Attach</span></button>
-              <span class="learning-hint" id="learningHint"><i class="fa-solid fa-bolt"></i> Self-training continuously in background</span>
+              <button type="button" class="icon-btn mic-btn" id="voiceMicBtn" title="Voice Dictation (Astra Speech Input)"><i class="fa-solid fa-microphone"></i></button>
+              <span class="learning-hint" id="learningHint"><i class="fa-solid fa-bolt"></i> GPT-6 / Astra MoE self-training continuously</span>
               <span class="composer-spacer"></span>
               <button type="submit" class="primary" id="sendBtn" aria-label="Send"><i class="fa-solid fa-arrow-up"></i></button>
             </div>
@@ -147,132 +162,257 @@
       </main>
     </div>
 
-    <!-- Brain & Training Modal -->
-    <div class="brain-modal-overlay" id="brainModal" aria-hidden="true">
-      <div class="brain-modal" role="dialog" aria-modal="true" aria-labelledby="brainModalTitle">
-        <header class="brain-modal-header">
-          <div class="brain-title-wrap">
-            <i class="fa-solid fa-brain"></i>
+    <!-- Frontier LLM Architecture & 4-Pillar Training Studio Modal -->
+    <div class="transformer-modal-overlay" id="llmModal" aria-hidden="true">
+      <div class="transformer-modal" role="dialog" aria-modal="true" aria-labelledby="llmModalTitle">
+        <header class="transformer-modal-header">
+          <div class="transformer-title-wrap">
+            <i class="fa-solid fa-microchip"></i>
             <div>
-              <h3 id="brainModalTitle">Kira's Trainable Brain</h3>
-              <p>Self-trains in the background, adapts to your tone, and retains persistent rules.</p>
+              <h3 id="llmModalTitle">Frontier LLM Architecture & Training Studio</h3>
+              <p>GPT-6 & Google Astra specification: RoPE, RMSNorm, GQA with KV-Cache, and Sparse MoE (8 SwiGLU Experts).</p>
             </div>
           </div>
-          <button class="icon-btn modal-close" id="closeBrainModal" aria-label="Close brain modal"><i class="fa-solid fa-xmark"></i></button>
+          <button class="icon-btn modal-close" id="closeLLMModal" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
         </header>
 
-        <div class="brain-stats-bar">
+        <div class="transformer-stats-bar">
           <div class="stat-item">
-            <strong id="statMemoriesCount">1</strong>
-            <span>Active Memories</span>
+            <strong id="statLlmStep">1</strong>
+            <span>Training Step</span>
           </div>
           <div class="stat-item">
-            <strong id="statKnowledgeCount">1</strong>
-            <span>Knowledge Docs</span>
+            <strong id="statLlmLoss">2.38</strong>
+            <span>Cross-Entropy Loss</span>
           </div>
           <div class="stat-item">
-            <strong class="stat-badge" id="statBgEpochBadge"><i class="fa-solid fa-bolt"></i> Epoch <span id="statEpochNum">1</span></strong>
-            <span>Background Self-Training</span>
+            <strong class="stat-badge" id="statLlmPPL">10.8</strong>
+            <span>Perplexity (PPL)</span>
+          </div>
+          <div class="stat-item">
+            <strong id="statLlmGradNorm">0.38</strong>
+            <span>Grad Norm (||g||)</span>
           </div>
         </div>
 
-        <div class="brain-tabs">
-          <button class="brain-tab active" data-tab="train"><i class="fa-solid fa-plus"></i> Teach Kira</button>
-          <button class="brain-tab" data-tab="memories"><i class="fa-solid fa-memory"></i> Learned Rules (<span id="tabMemCount">1</span>)</button>
-          <button class="brain-tab" data-tab="knowledge"><i class="fa-solid fa-book-bookmark"></i> Knowledge Base</button>
-          <button class="brain-tab" data-tab="bgtrain"><i class="fa-solid fa-bolt"></i> Background Training</button>
+        <div class="transformer-tabs">
+          <button class="transformer-tab active" data-tab="architecture"><i class="fa-solid fa-network-wired"></i> Architecture Inspector</button>
+          <button class="transformer-tab" data-tab="training"><i class="fa-solid fa-graduation-cap"></i> 4-Pillar Training Studio</button>
+          <button class="transformer-tab" data-tab="telemetry"><i class="fa-solid fa-bolt"></i> Live Telemetry & MoE Load</button>
         </div>
 
-        <div class="brain-tab-body active" id="tabContentTrain">
-          <div class="train-box">
-            <h4><i class="fa-solid fa-lightbulb"></i> Teach Kira a Rule or Preference</h4>
-            <p>Tell Kira how you want it to behave, write code, format math, or remember personal context.</p>
-            <div class="train-input-group">
-              <label for="trainCategorySelect">Category:</label>
-              <select id="trainCategorySelect">
-                <option value="Coding Style">Coding Style (e.g. "Always use TypeScript and type annotations")</option>
-                <option value="Math & Reasoning">Math & Reasoning (e.g. "Always derive step-by-step with LaTeX formulas")</option>
-                <option value="Summary Format">Summary Format (e.g. "Summaries should have bulleted takeaways")</option>
-                <option value="Tone & Persona">Tone & Persona (e.g. "Be direct, concise, and professional")</option>
-                <option value="Personal Context">Personal Context (e.g. "I work in bio-informatics")</option>
-                <option value="Custom Rule">General Custom Rule</option>
-              </select>
+        <!-- Tab 1: Frontier Architecture Inspector -->
+        <div class="transformer-tab-body active" id="tabContentArchitecture">
+          <div class="frontier-banner">
+            <i class="fa-solid fa-circle-check"></i>
+            <div>
+              <strong>Frontier Specification Compliant (GPT-6 / Google Astra Architecture)</strong>
+              <span>Incorporates Rotary Position Embeddings (RoPE), Pre-RMSNorm, Grouped-Query Attention (GQA), KV-Cache, and 8-Expert Sparse MoE SwiGLU.</span>
             </div>
-            <div class="train-input-group">
-              <label for="trainRuleInput">Training Instruction:</label>
-              <textarea id="trainRuleInput" rows="3" placeholder="e.g. Always write Python code with PEP8 formatting, docstrings, and type hints."></textarea>
+          </div>
+
+          <div class="arch-flow">
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-font"></i> 1. Multimodal Tokenizer & Input Fusion (Astra Core)</div>
+              <p>Byte-Pair Encoding (BPE / TikToken) mapping language text, vision patch tokens ($\mathbf{z}_{\text{vision}}$), and audio spectrogram frames into a unified stream with ChatML special tokens: <code>&lt;|im_start|&gt;</code>, <code>&lt;|im_end|&gt;</code>, <code>&lt;|thought|&gt;</code>.</p>
             </div>
-            <div class="train-presets">
-              <span>Quick Presets:</span>
-              <button type="button" class="preset-pill" data-preset="Always explain mathematical equations step-by-step using LaTeX formulas.">LaTeX Math Derivation</button>
-              <button type="button" class="preset-pill" data-preset="When writing code, include time and space complexity analysis and edge-case handling.">Algorithmic Complexities</button>
-              <button type="button" class="preset-pill" data-preset="Structure all summaries with Executive Overview, Key Insights, and Action Items.">Executive Summaries</button>
-              <button type="button" class="preset-pill" data-preset="Format all answers cleanly with markdown tables and bulleted highlights where applicable.">Tabular Data Styling</button>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-compass-drafting"></i> 2. Rotary Position Embeddings (RoPE)</div>
+              <p>Applies complex 2D orthogonal rotations to Query and Key projections with frequency base $\theta_i = 10000^{-2i/d}$, guaranteeing relative distance invariance across arbitrarily long context windows:</p>
+              <code>R_{θ, m}^d = diag(R_{θ_1, m}, ..., R_{θ_{d/2}, m})</code>
             </div>
-            <button type="button" class="primary train-submit-btn" id="trainRuleSubmitBtn">
-              <i class="fa-solid fa-graduation-cap"></i> Train Kira Now
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-sliders"></i> 3. Root Mean Square Pre-Normalization (RMSNorm)</div>
+              <p>Fast, stable layer normalization without mean-centering overhead applied before each sub-layer:</p>
+              <code>RMSNorm(x) = (x / √(mean(x²) + ε)) ⊙ γ</code>
+            </div>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-circle-nodes"></i> 4. Grouped-Query Attention (GQA) & KV-Cache</div>
+              <p>Reduces memory bandwidth by sharing $H_{kv}$ key-value heads across $H_q$ query heads. Integrates an $\mathcal{O}(1)$ Key-Value (KV) cache for instant token generation, causal triangular masking, and soft-capped attention logits (cap = 30.0):</p>
+              <code>Attention(Q, K, V) = Softmax( 30 · tanh( (Q · K^T / √d_k) / 30 ) ) · V</code>
+            </div>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-arrows-split-up-and-left"></i> 5. Sparse Mixture of Experts (MoE) with SwiGLU</div>
+              <p>Dynamic router gating network distributing tokens to the Top-2 most specialized experts out of 8 domain-specific SwiGLU networks (Syntax, Math, Code, Astra Multimodal, Creative Dialogue, STEM Physics, CoT Reasoning, Safety Alignment):</p>
+              <code>SwiGLU(x) = (x · W_gate ⊙ SiLU(x · W_gate)) (x · W_up) · W_down</code>
+            </div>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-brain"></i> 6. Chain-of-Thought (CoT) Reasoning Engine</div>
+              <p>Internal multi-step hypothesis formulation, intermediate scratchpad generation, and logical validation inside <code>&lt;|thought|&gt;</code> blocks prior to user emission.</p>
+            </div>
+            <div class="arch-arrow">↓</div>
+            <div class="arch-box">
+              <div class="arch-header"><i class="fa-solid fa-bullseye"></i> 7. Final RMSNorm + Unembedded LM Head + LoRA</div>
+              <p>Vocabulary projection with Low-Rank Adaptation ($\Delta W = \frac{\alpha}{r} B A$) and adaptive nucleus (Top-P) / temperature autoregressive decoding.</p>
+            </div>
+          </div>
+
+          <div class="bg-section-title" style="margin-top: 24px;">Active MoE Expert Router Utilization (Live Dynamic Routing):</div>
+          <div class="moe-expert-grid" id="moeExpertGrid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Tab 2: 4-Pillar Training Studio -->
+        <div class="transformer-tab-body" id="tabContentTraining">
+          <div class="training-studio-container">
+            <div class="training-mode-selector">
+              <button type="button" class="mode-btn active" data-mode="pt"><i class="fa-solid fa-book-open"></i> 1. Pre-Training (PT)</button>
+              <button type="button" class="mode-btn" data-mode="sft"><i class="fa-solid fa-comments"></i> 2. Instruction SFT</button>
+              <button type="button" class="mode-btn" data-mode="dpo"><i class="fa-solid fa-scale-balanced"></i> 3. DPO Alignment</button>
+              <button type="button" class="mode-btn" data-mode="lora"><i class="fa-solid fa-puzzle-piece"></i> 4. LoRA Tuning</button>
+            </div>
+
+            <!-- Mode 1: Pre-training (PT) -->
+            <div class="mode-form-pane active" id="panePT">
+              <div class="mode-desc">
+                <strong>Mode 1: Pre-Training (PT) — Autoregressive Next-Token Prediction</strong>
+                <p>Trains foundational language and STEM representations by minimizing cross-entropy loss over unlabelled text sequences with AdamW optimization and gradient clipping.</p>
+              </div>
+              <div class="train-presets">
+                <span class="preset-label">Quick Presets:</span>
+                <div class="preset-chips">
+                  <button type="button" class="preset-chip" data-mode="pt" data-text="Euler's identity links fundamental mathematical constants: e^(i * pi) + 1 = 0.">📐 Math Identity</button>
+                  <button type="button" class="preset-chip" data-mode="pt" data-text="Quicksort operates with average time complexity of O(n log n) by partitioning around a chosen pivot.">💻 QuickSort O(n log n)</button>
+                  <button type="button" class="preset-chip" data-mode="pt" data-text="General Relativity models gravitation as curvature of four-dimensional spacetime caused by mass-energy.">🔬 Spacetime Curvature</button>
+                  <button type="button" class="preset-chip" data-mode="pt" data-text="Google Astra processes continuous multimodal text, vision patch tokens, and audio spectrograms at low latency.">⚡ Astra Multimodal</button>
+                </div>
+              </div>
+              <div class="train-input-group">
+                <label for="ptCorpusInput">Raw Unsupervised Text Corpus:</label>
+                <textarea id="ptCorpusInput" rows="3" placeholder="Input any scientific principle, proof, or corpus to run forward-backward pass..."></textarea>
+              </div>
+            </div>
+
+            <!-- Mode 2: Instruction SFT -->
+            <div class="mode-form-pane" id="paneSFT">
+              <div class="mode-desc">
+                <strong>Mode 2: Supervised Fine-Tuning (SFT) — Instruction Tuning</strong>
+                <p>Aligns model to follow instructions. Employs <strong>Prompt-Loss Masking</strong>: loss is computed <em>strictly</em> on the assistant target tokens while masking user prompt tokens (Loss Mask = 0 on Prompt, 1 on Target).</p>
+              </div>
+              <div class="train-presets">
+                <span class="preset-label">Quick Presets:</span>
+                <div class="preset-chips">
+                  <button type="button" class="preset-chip" data-mode="sft" data-prompt="How do I solve 2x + 6 = 14?" data-response="Subtract 6 from both sides to get 2x = 8, then divide by 2 to find x = 4.">📐 Math Step</button>
+                  <button type="button" class="preset-chip" data-mode="sft" data-prompt="Write a Python function to check for palindromes." data-response="def is_palindrome(s): cleaned = ''.join(c.lower() for c in s if c.isalnum()); return cleaned == cleaned[::-1]">💻 Python Code</button>
+                  <button type="button" class="preset-chip" data-mode="sft" data-prompt="Why is the sky blue?" data-response="Rayleigh scattering scatters shorter blue light (450nm) 10x more intensely than longer red light.">🔬 Science Fact</button>
+                </div>
+              </div>
+              <div class="train-input-group">
+                <label for="sftPromptInput">User Instruction (Prompt): <span class="mask-badge masked"><i class="fa-solid fa-eye-slash"></i> Loss Masked (0)</span></label>
+                <textarea id="sftPromptInput" rows="2" placeholder="e.g. Derive the roots of 3x^2 - 12x + 9 = 0"></textarea>
+              </div>
+              <div class="train-input-group">
+                <label for="sftResponseInput">Target Assistant Completion: <span class="mask-badge active"><i class="fa-solid fa-bullseye"></i> Loss Active (1)</span></label>
+                <textarea id="sftResponseInput" rows="3" placeholder="e.g. Applying x = (-b ± √(b² - 4ac)) / 2a yields x1 = 3 and x2 = 1."></textarea>
+              </div>
+            </div>
+
+            <!-- Mode 3: DPO Alignment -->
+            <div class="mode-form-pane" id="paneDPO">
+              <div class="mode-desc">
+                <strong>Mode 3: Direct Preference Optimization (DPO) / RLHF Alignment</strong>
+                <p>Optimizes output quality without training a separate reward model. Increases log-probability of preferred (Chosen) answers and penalizes (Rejected) suboptimal responses via margin loss: $\mathcal{L}_{\text{DPO}} = -\log \sigma(\beta \Delta \log \pi)$.</p>
+              </div>
+              <div class="train-presets">
+                <span class="preset-label">Quick Presets:</span>
+                <div class="preset-chips">
+                  <button type="button" class="preset-chip" data-mode="dpo" data-prompt="Solve 2x + 6 = 14" data-chosen="Step 1: 2x = 14 - 6 = 8. Step 2: x = 8 / 2 = 4. Solution: x = 4." data-rejected="x is probably 4 or 5 I think.">📐 Rigorous vs Vague</button>
+                  <button type="button" class="preset-chip" data-mode="dpo" data-prompt="How do I reverse a string in JS?" data-chosen="function reverse(s) { return s.split('').reverse().join(''); }" data-rejected="Just write a bunch of loops or something.">💻 Precise vs Lazy</button>
+                </div>
+              </div>
+              <div class="train-input-group">
+                <label for="dpoPromptInput">User Context Prompt:</label>
+                <input type="text" id="dpoPromptInput" placeholder="e.g. Explain how binary search works." />
+              </div>
+              <div class="train-input-group">
+                <label for="dpoChosenInput" style="color: #4ade80;"><i class="fa-solid fa-circle-check"></i> Chosen Response (Preferred / High Quality):</label>
+                <textarea id="dpoChosenInput" rows="2" placeholder="Accurate, detailed, step-by-step response..."></textarea>
+              </div>
+              <div class="train-input-group">
+                <label for="dpoRejectedInput" style="color: #f87171;"><i class="fa-solid fa-circle-xmark"></i> Rejected Response (Suboptimal / Low Quality):</label>
+                <textarea id="dpoRejectedInput" rows="2" placeholder="Inaccurate, lazy, or vague response..."></textarea>
+              </div>
+            </div>
+
+            <!-- Mode 4: LoRA Tuning -->
+            <div class="mode-form-pane" id="paneLoRA">
+              <div class="mode-desc">
+                <strong>Mode 4: LoRA (Low-Rank Adaptation) Parameter-Efficient Fine-Tuning</strong>
+                <p>Freezes 100% of base model weights ($W_0$) and trains low-rank decomposition matrices $\Delta W = \frac{\alpha}{r} (B \cdot A)$ with rank $r=4$ and scaling $\alpha=16$ for high-speed domain specialization.</p>
+              </div>
+              <div class="train-presets">
+                <span class="preset-label">Quick Presets:</span>
+                <div class="preset-chips">
+                  <button type="button" class="preset-chip" data-mode="lora" data-text="Domain Adapter: Specialized in Differential Equations, Laplace Transforms, and Fourier Analysis.">📐 Calculus Adapter</button>
+                  <button type="button" class="preset-chip" data-mode="lora" data-text="Domain Adapter: High-performance TypeScript, Rust concurrency, and distributed systems architecture.">💻 Systems Code Adapter</button>
+                </div>
+              </div>
+              <div class="train-input-group">
+                <label for="loraCorpusInput">Domain Text to Adapt with LoRA:</label>
+                <textarea id="loraCorpusInput" rows="3" placeholder="Input specialized domain knowledge to train low-rank matrices A and B..."></textarea>
+              </div>
+              <div class="lora-controls">
+                <span class="lora-badge"><i class="fa-solid fa-lock"></i> Base Weights: Frozen</span>
+                <span class="lora-badge active"><i class="fa-solid fa-pen-nib"></i> Trainable: Rank r=4, α=16</span>
+              </div>
+            </div>
+
+            <!-- Execution Button -->
+            <button type="button" class="primary train-submit-btn" id="runTrainBtn">
+              <i class="fa-solid fa-bolt"></i> Execute Training Step (Forward + Loss + Backprop)
             </button>
-          </div>
-        </div>
 
-        <div class="brain-tab-body" id="tabContentMemories">
-          <div class="memories-toolbar">
-            <span>All memories currently active in Kira's cognitive brain:</span>
-            <button type="button" class="btn-clear-memories" id="btnClearAllMemories"><i class="fa-solid fa-trash-can"></i> Reset to Default</button>
-          </div>
-          <div class="memories-list" id="memoriesList"></div>
-        </div>
-
-        <div class="brain-tab-body" id="tabContentKnowledge">
-          <div class="train-box">
-            <h4><i class="fa-solid fa-file-circle-plus"></i> Add Knowledge Document</h4>
-            <p>Upload or paste verified reference documentation or custom notes for Kira to ground on.</p>
-            <div class="train-input-group">
-              <label for="kbTitleInput">Document Title:</label>
-              <input type="text" id="kbTitleInput" placeholder="e.g. Company Engineering Standards or Project Specification" />
+            <!-- Live Receipt Result Panel -->
+            <div class="train-receipt" id="trainReceipt" style="display: none;">
+              <div class="receipt-header">
+                <i class="fa-solid fa-receipt"></i>
+                <strong id="receiptTitle">Training Step Completed</strong>
+                <span class="receipt-mode" id="receiptMode">Pre-Training (PT)</span>
+              </div>
+              <div class="receipt-body" id="receiptBody"></div>
             </div>
-            <div class="train-input-group">
-              <label for="kbContentInput">Content / Notes:</label>
-              <textarea id="kbContentInput" rows="4" placeholder="Paste custom documentation, API specifications, or verified facts here..."></textarea>
-            </div>
-            <button type="button" class="primary train-submit-btn" id="kbSubmitBtn">
-              <i class="fa-solid fa-floppy-disk"></i> Save to Knowledge Base
-            </button>
           </div>
-          <div class="knowledge-list" id="knowledgeList"></div>
         </div>
 
-        <!-- Background Training Tab -->
-        <div class="brain-tab-body" id="tabContentBgTrain">
+        <!-- Tab 3: Live Telemetry & Background Train Stream -->
+        <div class="transformer-tab-body" id="tabContentTelemetry">
           <div class="bg-train-overview">
             <div class="bg-train-card">
-              <span class="label">Training Epoch</span>
-              <strong id="bgModalEpoch">1</strong>
-              <small>Auto-increments every message</small>
+              <span class="label">Training Rate</span>
+              <strong>1 Step / sec</strong>
+              <small>Continuous background cycle</small>
             </div>
             <div class="bg-train-card">
-              <span class="label">Neural Synapses</span>
-              <strong id="bgModalSynapses">1,240</strong>
-              <small>Dynamic memory associations</small>
+              <span class="label">Tokens Ingested</span>
+              <strong id="statTotalTokens">0</strong>
+              <small>Vocabulary accumulation</small>
             </div>
             <div class="bg-train-card">
-              <span class="label">Adapted Tone</span>
-              <strong id="bgModalTone">balanced</strong>
-              <small>Emotionally responsive</small>
+              <span class="label">Attention Heads</span>
+              <strong>GQA (4Q / 2KV)</strong>
+              <small>Grouped-Query Attention</small>
+            </div>
+            <div class="bg-train-card">
+              <span class="label">Sparse MoE</span>
+              <strong>8 Experts (Top-2)</strong>
+              <small>SwiGLU Gated Router</small>
             </div>
           </div>
 
-          <div class="bg-train-actions">
-            <button type="button" class="btn-cycle" id="btnRunBgCycle">
-              <i class="fa-solid fa-arrows-rotate"></i> Run Background Optimization Cycle
-            </button>
+          <div class="bg-section-title">Active Knowledge Ingestion Stream (Absorbing Each Second):</div>
+          <div class="active-fact-card">
+            <i class="fa-solid fa-quote-left"></i>
+            <span id="activeFactStream">Loading factual streams…</span>
           </div>
 
-          <div class="bg-section-title">Learned Adaptations & Behavioral Postures:</div>
-          <div class="adaptations-list" id="bgAdaptationsList"></div>
-
-          <div class="bg-section-title">Live Background Training Telemetry Log:</div>
-          <div class="telemetry-log" id="bgTrainingLog"></div>
+          <div class="bg-section-title">Live Neural Weight Optimization Telemetry:</div>
+          <div class="telemetry-log" id="llmTelemetryLog"></div>
         </div>
       </div>
     </div>
@@ -287,11 +427,11 @@
         <div class="settings-body" id="settingsHome">
           <div class="settings-profile">
             <div class="settings-avatar">A<span class="edit-dot">✎</span></div>
-            <div><strong>Arya</strong><small>Continuous Learning AI</small></div>
+            <div><strong>Arya</strong><small>Continuous Self-Training AI</small></div>
           </div>
-          <div class="settings-group-title">Kira Cognitive Brain</div>
+          <div class="settings-group-title">Transformer Engine</div>
           <div class="settings-list">
-            <button class="settings-row" id="settingsOpenBrain"><span class="row-icon"><i class="fa-solid fa-brain"></i></span><span class="row-main"><strong>Trainable Brain & Memory</strong><small id="settingsBrainSub">Active & learning with every turn</small></span><span class="chevron">›</span></button>
+            <button class="settings-row" id="settingsOpenLLM"><span class="row-icon"><i class="fa-solid fa-microchip"></i></span><span class="row-main"><strong>Transformer Architecture & Telemetry</strong><small>Multi-Head Attention & FFN</small></span><span class="chevron">›</span></button>
             <button class="settings-row" data-settings="personalization"><span class="row-icon"><i class="fa-regular fa-user"></i></span><span class="row-main"><strong>Personalization</strong></span><span class="chevron">›</span></button>
             <button class="settings-row" data-settings="research"><span class="row-icon"><i class="fa-solid fa-globe"></i></span><span class="row-main"><strong>Research & sources</strong><small>Control Google Search grounding</small></span><span class="chevron">›</span></button>
           </div>
@@ -313,12 +453,11 @@
       </section>
     </div>
 
-    <!-- Notification Toast for continuous learning -->
-    <div class="brain-toast" id="brainToast" aria-live="polite"></div>
+    <!-- Notification Toast -->
+    <div class="transformer-toast" id="transformerToast" aria-live="polite"></div>
 
     <script src="markdown.js"></script>
-    <script src="knowledge.js"></script>
-    <script type="module" src="local-ai.js"></script>
+    <script src="local-ai.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
