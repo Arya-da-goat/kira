@@ -1,16 +1,12 @@
 {
   "name": "kira",
-  "version": "1.0.0",
+  "version": "0.2.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "build": "node -e \"console.log('Build successful')\"",
-    "lint": "node -e \"console.log('No lint errors')\""
+    "dev": ".venv/bin/python -m backend.server",
+    "start": ".venv/bin/python -m backend.server",
+    "check": "node --check frontend/app.js"
   },
-  "dependencies": {
-    "@google/genai": "^2.27.0",
-    "express": "^4.21.2",
-    "jszip": "^3.10.2"
-  }
+  "license": "MIT"
 }

@@ -1,0 +1,2 @@
+# Install a CPU/CUDA-compatible PyTorch wheel first; see README.
+-e .[dev]

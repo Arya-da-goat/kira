@@ -1,0 +1,28 @@
+{
+  "model": {
+    "vocab_size": 384,
+    "d_model": 64,
+    "num_layers": 2,
+    "num_attention_heads": 4,
+    "num_kv_heads": 2,
+    "intermediate_size": 192,
+    "max_seq_len": 128,
+    "rope_theta": 10000.0,
+    "dropout": 0.0
+  },
+  "training": {
+    "batch_size": 4,
+    "gradient_accumulation_steps": 2,
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "warmup_steps": 10,
+    "max_steps": 100,
+    "max_epochs": 100,
+    "grad_clip": 1.0,
+    "precision": "auto",
+    "eval_interval": 10,
+    "save_interval": 50,
+    "seed": 42,
+    "validation_fraction": 0.2
+  }
+}

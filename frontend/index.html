@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kira | Local model lab</title>
+  <meta name="description" content="Train and run Kira's text Transformer locally.">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><span class="brand-dot">K</span><strong>Kira</strong><small>LOCAL MODEL LAB</small></div>
+      <button id="newChat" class="primary">＋ New conversation</button>
+      <label class="field">Search conversations<input id="searchChats" type="search" placeholder="Search saved chats"></label>
+      <div id="threadList" class="thread-list"></div>
+      <div class="sidebar-footer">
+        <button id="exportChat">Export conversation</button>
+        <button id="deleteChat">Delete conversation</button>
+        <p>History and memory stay in this browser. Chatting never updates model weights.</p>
+      </div>
+    </aside>
+    <main class="chat-panel">
+      <header class="topbar">
+        <div><strong>Kira</strong><span class="engine-badge">Text Transformer</span></div>
+        <button id="inspectModel">Model & measurements</button>
+      </header>
+      <div id="modelStatus" class="status-banner" role="status">Connecting to local Python backend…</div>
+      <section id="chat" class="chat-window" aria-live="polite"></section>
+      <section class="context-panel">
+        <details>
+          <summary>Memory, files & search tools</summary>
+          <p>These supply context to the model. They do not train it. Images and audio are unsupported.</p>
+          <label class="field">Memory for this conversation<textarea id="memory" rows="2" placeholder="Optional notes to include with each request"></textarea></label>
+          <div class="tool-row"><label class="file-button">Attach text file<input id="fileInput" type="file" accept=".txt,.md,.json,.jsonl,.csv,.py,.js,.log"></label><button id="clearContext">Clear attached context</button></div>
+          <div id="attachments"></div>
+          <div class="tool-row"><input id="searchQuery" placeholder="Search Wikipedia (requires internet)" aria-label="Search query"><button id="webSearch">Search web</button></div>
+          <div id="searchResults" aria-live="polite"></div>
+        </details>
+        <details>
+          <summary>Generation settings</summary>
+          <div class="settings-grid">
+            <label>Temperature<input id="temperature" type="number" value="0.8" min="0" max="5" step="0.1"></label>
+            <label>Top-k<input id="topK" type="number" value="40" min="0" max="100000"></label>
+            <label>Top-p<input id="topP" type="number" value="0.95" min="0.01" max="1" step="0.01"></label>
+            <label>New tokens<input id="maxTokens" type="number" value="48" min="1" max="512"></label>
+            <label>Repeat penalty<input id="penalty" type="number" value="1" min="0.1" max="10" step="0.1"></label>
+            <label>Seed<input id="seed" type="number" value="42" min="0" max="9007199254740991"></label>
+          </div>
+          <label><input id="useHistory" type="checkbox"> Include previous messages as context</label>
+          <p>Unchecked sends a raw text completion. Small contexts may not fit conversation history.</p>
+        </details>
+      </section>
+      <div class="composer-container">
+        <form id="composer" class="composer">
+          <label for="prompt" class="sr-only">Prompt</label>
+          <textarea id="prompt" rows="2" placeholder="Enter a text prefix for Kira to continue…" required></textarea>
+          <div class="composer-actions"><span id="generationStatus" role="status">Local weights · no inference API</span><button id="sendBtn" class="primary" type="submit" disabled>Generate ↑</button></div>
+        </form>
+        <p class="disclaimer">Architecture code does not equal intelligence. Useful language behavior comes from training the model on data.</p>
+      </div>
+    </main>
+  </div>
+  <dialog id="modelDialog">
+    <header><h2>Model & measurements</h2><button id="closeModel" aria-label="Close model details">Close</button></header>
+    <p>Values below come from the loaded checkpoint. Restart the backend to load newer weights.</p>
+    <pre id="modelDetails"></pre>
+    <h3>Recorded training loss</h3><svg id="lossChart" viewBox="0 0 600 220" role="img" aria-label="Measured training and validation loss"></svg>
+    <p id="chartLegend"></p>
+    <h3>Train locally</h3>
+    <pre>python -m kira.tokenizer.train --data data/example
+python -m kira.training.train --data data/example
+python -m kira.inference.generate --prompt "hello"</pre>
+    <p>This is a text pretraining foundation. Instruction tuning, adapters, preference training and vision are not implemented.</p>
+  </dialog>
+</body>
+</html>

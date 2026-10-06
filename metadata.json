@@ -1,8 +1,0 @@
-{
-  "name": "Kira | Local AI",
-  "description": "Kira is a ChatGPT-inspired chatspace built for GitHub Pages and local-first intelligent conversations.",
-  "prompt": "Kira local AI chatspace",
-  "capabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}

@@ -1,0 +1,68 @@
+/* Kira's local lab retains the dark sidebar and chat layout. */
+* { box-sizing: border-box; }
+:root { color-scheme: dark; --bg:#0f172a; --panel:#111827; --line:rgba(148,163,184,.2); --text:#e5e7eb; --muted:#94a3b8; --accent:#3b82f6; }
+body { margin:0; padding:clamp(0px,2vw,24px); height:100dvh; font:15px/1.5 system-ui,sans-serif; color:var(--text); background:radial-gradient(at top left,#16294a,transparent 55%),#070b14; }
+button,input,textarea { font:inherit; }
+button,.file-button { border:1px solid var(--line); background:#1e293b; color:var(--text); border-radius:9px; padding:9px 12px; cursor:pointer; }
+button:hover,.file-button:hover { background:#2c3b52; }
+button:disabled { cursor:not-allowed; opacity:.5; }
+button.primary { background:#2563eb; border-color:#3b82f6; }
+input,textarea { border:1px solid var(--line); background:#0b1120; color:var(--text); padding:8px; border-radius:7px; max-width:100%; }
+textarea { resize:vertical; width:100%; }
+input[type=checkbox] { width:auto; }
+:focus-visible { outline:2px solid #60a5fa; outline-offset:3px; }
+.app-shell { max-width:1500px; height:100%; margin:auto; display:flex; overflow:hidden; border:1px solid var(--line); border-radius:22px; background:var(--bg); box-shadow:0 30px 80px #0005; }
+.sidebar { width:265px; flex-shrink:0; display:flex; flex-direction:column; gap:15px; padding:22px 16px; background:#080f1e; border-right:1px solid var(--line); }
+.sidebar-brand { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.sidebar-brand strong { font-size:25px; }
+.sidebar-brand small { width:100%; color:var(--muted); letter-spacing:2px; font-size:10px; }
+.brand-dot { display:grid; place-items:center; width:32px; height:32px; border-radius:9px; background:var(--accent); font-weight:700; }
+.field { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:13px; }
+.thread-list { flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px; }
+.thread-list button { text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:transparent; }
+.thread-list button.active { background:#1e293b; border-color:#3b82f6; }
+.sidebar-footer { display:grid; gap:8px; }
+p { color:var(--muted); }
+.sidebar-footer p { font-size:12px; }
+.chat-panel { min-width:0; flex:1; display:flex; flex-direction:column; }
+.topbar { padding:17px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.engine-badge { font-size:11px; color:#93c5fd; background:#1e3a5f; border-radius:6px; padding:4px 7px; margin-left:12px; }
+.status-banner { padding:10px 24px; background:#132335; color:#b5c9dc; font-size:12px; }
+.chat-window { flex:1; overflow:auto; padding:24px max(24px,calc((100% - 850px)/2)); min-height:100px; }
+.welcome { max-width:640px; margin:5vh auto; }
+.welcome h1 { font-size:32px; font-weight:500; }
+.welcome code { color:#93c5fd; }
+.message { margin:0 0 23px; }
+.message header { font-size:12px; color:var(--muted); margin-bottom:6px; }
+.message .text { white-space:pre-wrap; overflow-wrap:anywhere; padding:14px 18px; border-radius:13px; background:#1b273b; }
+.message.user .text { background:#183767; }
+.message footer { color:var(--muted); font-size:11px; margin-top:7px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.message footer button { padding:2px 7px; font-size:11px; }
+.context-panel { margin:0 24px; max-height:32vh; overflow:auto; }
+details { border-top:1px solid var(--line); padding:8px 0; }
+summary { cursor:pointer; color:var(--muted); font-size:13px; }
+details p { font-size:12px; }
+.tool-row { display:flex; gap:8px; margin:10px 0; align-items:center; }
+.tool-row input { flex:1; min-width:0; }
+.file-button { font-size:13px; }
+.file-button input { display:none; }
+.settings-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+.settings-grid label { font-size:12px; color:var(--muted); }
+.settings-grid input { width:100%; }
+#searchResults article { padding:10px; border:1px solid var(--line); margin:6px 0; border-radius:8px; }
+a { color:#93c5fd; }
+#attachments { color:#93c5fd; font-size:12px; white-space:pre-wrap; }
+.composer-container { padding:10px 24px 12px; }
+.composer { border:1px solid #3b4b63; border-radius:16px; padding:12px; background:#172033; }
+.composer textarea { background:transparent; border:0; min-height:45px; max-height:160px; }
+.composer-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+#generationStatus { font-size:12px; color:var(--muted); }
+.disclaimer { font-size:10px; text-align:center; margin:8px 0 0; }
+dialog { width:min(800px,95vw); max-height:90vh; border:1px solid #40526d; border-radius:16px; padding:24px; background:var(--panel); color:var(--text); }
+dialog::backdrop { background:#0009; }
+dialog header { display:flex; justify-content:space-between; align-items:center; }
+pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; background:#0b1120; padding:14px; border-radius:8px; }
+#lossChart { width:100%; background:#0b1120; border-radius:8px; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+@media(max-width:760px) { .sidebar{width:165px;padding:12px 8px} .topbar{padding:12px;flex-wrap:wrap} .engine-badge{display:none} .chat-window{padding:16px} .context-panel{margin:0 12px} .composer-container{padding:10px 12px} .sidebar-brand small{font-size:8px} }
+@media(max-width:480px) { .sidebar{width:110px} .sidebar button,.sidebar input{font-size:11px;padding:7px} .sidebar-footer p,.sidebar-brand small{display:none} .sidebar-brand strong{font-size:20px} .brand-dot{display:none} .settings-grid{grid-template-columns:repeat(2,1fr)} .tool-row{flex-wrap:wrap} .app-shell{border-radius:0} }
