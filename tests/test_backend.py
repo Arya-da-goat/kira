@@ -6,7 +6,7 @@ from test_pipeline import prepare
 
 
 def test_no_checkpoint_and_public_assets(tmp_path):
-    with TestClient(create_app(tmp_path / 'missing.pt', 'cpu')) as client:
+    with TestClient(create_app(tmp_path / 'missing.pt', 'cpu', runs_dir=tmp_path / 'web')) as client:
         assert client.get('/').status_code == 200
         assert client.get('/app.js').status_code == 200
         assert not client.get('/api/status').json()['ready']
@@ -23,7 +23,7 @@ def test_context_and_search_tool(tmp_path, monkeypatch):
     assert all(word in build_prompt(request) for word in ('now', 'before', 'remember', 'document'))
     assert build_prompt(ChatRequest(prompt='raw completion')) == 'raw completion'
     monkeypatch.setattr('backend.server.search_web', lambda query: [{'title': query, 'snippet': 'fixture', 'url': 'https://en.wikipedia.org/wiki/Test'}])
-    with TestClient(create_app(tmp_path / 'missing.pt', 'cpu')) as client:
+    with TestClient(create_app(tmp_path / 'missing.pt', 'cpu', runs_dir=tmp_path / 'web')) as client:
         result = client.post('/api/tools/search', json={'query': 'test'})
         assert result.status_code == 200 and result.json()['results'][0]['title'] == 'test'
 
@@ -36,7 +36,7 @@ def test_checkpoint_api_generates_without_training(tmp_path, monkeypatch):
     train(config, data, tokenizer, output, device_name='cpu', stop_after=2)
     checkpoint = output / 'latest.pt'
     before = checkpoint.read_bytes()
-    with TestClient(create_app(checkpoint, 'cpu')) as client:
+    with TestClient(create_app(checkpoint, 'cpu', runs_dir=tmp_path / 'web')) as client:
         status = client.get('/api/status').json()
         assert status['ready'] and status['training_step'] == 2
         assert status['training_status'] == 'partially trained'

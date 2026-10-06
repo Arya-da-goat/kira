@@ -1,6 +1,6 @@
 # Kira — a local, trainable text Transformer
 
-Kira is a language model foundation implemented in Python and PyTorch, with its own architecture, trainable byte BPE tokenizer, next-token training, resumable checkpoints, local generation, evaluation, and browser interface. It uses **no external LLM inference service and needs no API key**.
+Kira is a language model foundation implemented in Python and PyTorch, with its own architecture, trainable byte BPE tokenizer, next-token training, resumable checkpoints, local generation, evaluation, and browser interface. It uses **no external LLM inference service and needs no AI service API key**. You can chat and start real training in the browser, including from a GitHub Pages frontend connected to your own Python backend.
 
 **Architecture code does not equal intelligence. Useful language behavior comes from training the model on data.**
 
@@ -8,7 +8,7 @@ No pretrained language model is bundled. A fresh checkout has no weights. Traini
 
 ## Quick Start
 
-Supported Python: **3.9+**, with **3.11 recommended and selected for CPU CI**. The reference CPU constraints target Python 3.9 and 3.11. Node is optional; there are no npm dependencies or build step. Run the commands from the repository root. Internet is needed to install packages; core training/inference then runs locally without credentials.
+Supported Python: **3.9+**, with **3.11 recommended for CPU testing**. The reference CPU constraints target Python 3.9 and 3.11. Node is optional; there are no npm dependencies or build step. Run the commands from the repository root. Internet is needed to install packages; core training/inference then runs locally without credentials.
 
 ### 1. Clone and create a Python environment
 
@@ -70,9 +70,57 @@ python -m kira.inference.generate --checkpoint checkpoints/latest.pt --prompt "h
 python -m backend.server --checkpoint checkpoints/latest.pt
 ```
 
-Open **http://127.0.0.1:3000**. Without a checkpoint the server serves the interface, reports missing weights, and returns HTTP 503 for generation. Python is required; there is no hosted inference or JavaScript model fallback. Restart the server to load a new checkpoint. `npm start` is an optional shortcut using `.venv/bin/python`.
+Open **http://127.0.0.1:3000**. Without a checkpoint the server serves the interface, reports missing weights, and returns HTTP 503 for generation. Python is required; there is no hosted inference or JavaScript model fallback. Open **Train** to upload a small dataset, start real training, inspect measured losses, and **Load into chat** when a checkpoint is saved. `npm start` is an optional shortcut using `.venv/bin/python`.
 
 The tiny configuration supports CPU development. Choose `--device cpu`, `cuda`, `mps`, or `auto`. CPU/MPS use FP32. CUDA auto selects BF16 when supported, otherwise FP16 with gradient scaling. CLI commands default to two CPU threads. Training prints device/precision and GPU name when available. Larger models need more memory for gradients, AdamW states, activations, and attention; scale gradually and measure on your hardware.
+
+## GitHub Pages and mobile setup
+
+**GitHub Pages serves the interface; it cannot run Python/PyTorch.** Your phone can use the interface while a backend runs in GitHub Codespaces or on a machine you control. No inference provider is involved. A stopped Codespace means chat and training are unavailable. Codespaces usage is subject to your account's quota/billing. [About GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages).
+
+### Publish the interface (once)
+
+1. Merge this change into your repository's `main` branch.
+2. In your phone **browser**, open the repository → **Settings → Pages**. Enable Desktop site if the setting is hidden.
+3. Under **Build and deployment**, choose **Deploy from a branch**, then **main** and **/ (root)**, and save.
+4. Wait for GitHub to publish, then open **https://arya-da-goat.github.io/kira/** (use your own account/site URL for a fork).
+
+The root `index.html` opens `frontend/`. Assets use relative paths so project subpaths work. `.nojekyll` enables plain static publishing. No npm build or custom Actions workflow is required. Publishing still depends on your repository's Pages permissions/settings and GitHub's deployment service. [Publishing source settings](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+
+### Start the Python backend from your phone
+
+1. In the repository's **Code → Codespaces** menu, create/open a Codespace on the branch containing these changes. Use the phone browser's Desktop site if necessary.
+2. In its terminal, run this **one command** from the repository root:
+
+   ```bash
+   bash scripts/start_web.sh
+   ```
+
+   The Linux CPU helper creates `.venv` and installs dependencies if needed, then starts the actual backend. Initial installation needs internet and may take several minutes. For a fork/custom Pages domain, pass your exact site **origin without a path**: `bash scripts/start_web.sh https://YOUR-ACCOUNT.github.io`. On an already prepared machine you can instead run:
+
+   ```bash
+   python -m backend.server --host 0.0.0.0 --device cpu --allow-origin https://arya-da-goat.github.io
+   ```
+
+3. Copy the **backend access token** printed in that terminal. Keep it private. This is a password for your own backend, not an AI API key.
+4. In the Codespace **Ports** panel, forward **3000** if it is not already listed. Set its visibility to **Public** so the Pages origin can reach it, then copy its **HTTPS forwarded address**. Keep the backend's token protection enabled. An organization policy may prohibit public ports; in that case use the backend's own authenticated preview or another HTTPS backend you control. [Codespaces ports](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace).
+5. Open your Pages site, tap **Connect**, paste the forwarded URL and access token, and tap **Connect backend**.
+6. Tap **Train → Use tiny example** (or upload your own `.txt`, `.json`, `.jsonl`), review the settings, check the data permission box, and tap **Start real training**.
+7. Wait for measured optimizer updates. Tap **Load into chat**, enter a short prefix such as `hello`, then **Generate**.
+
+A tiny run will produce poor text: this is a real training test, not a pretrained assistant. The training panel shows actual cross entropy, validation loss/perplexity/accuracy, learning rate, gradient norm, tokens processed, throughput, and loss curves. Each new run starts from random weights and trains its own tokenizer on the training split. Training and generation are serialized. Use Python CLI configuration for larger runs, resume, and evaluation exports.
+
+### Connection, storage, and troubleshooting
+
+- A Pages URL such as `https://arya-da-goat.github.io/kira/` has origin **`https://arya-da-goat.github.io`**; do not include `/kira/` in `--allow-origin`.
+- Use HTTPS for a backend connected to an HTTPS Pages site. Paste the forwarded backend address, not your repository, Pages, or Codespaces editor URL. Private port redirects cannot be used by this cross-origin client.
+- The backend URL is remembered locally. The access token exists only in tab memory; **re-enter it after reloading**. Requests send it in an Authorization header, never a URL. No shared token is included in the public site.
+- On non-loopback binds or when `--allow-origin` is set, the server generates/reuses a private token in ignored `runs/backend-access.txt`. Delete this local file and restart to rotate the token. Stop the server when finished. Only share the token with people allowed to train, generate, and read your run measurements.
+- Training uploads are capped at **32 KiB**, 2–2,000 optimizer steps, and the small dense architecture. Blank lines delimit text documents; JSON/JSONL accept strings or objects with `text`. At least two distinct documents are required. Data leaves your browser only when you start training (or explicitly supply chat context).
+- Datasets, configs, logs, tokenizer and checkpoints are under ignored **`runs/web/RUN_ID/`** in the backend. The panel lists the latest 20 runs. Closing a tab/panel does not cancel training; **Stop training** terminates the worker and retains any already saved checkpoint. Load shows the actual saved step, which can lag the last logged update.
+- Normal backend shutdown stops its worker. After an abrupt crash, a run is marked interrupted and cannot be loaded through the UI; inspect/stop any leftover worker before using CLI resume on its `latest.pt`. Run one backend process per run directory. There is no public multi-user job scheduler or automated artifact retention.
+- Runs remain on that machine across server restarts; load them explicitly from Train. Back up wanted checkpoints/data privately before deleting a Codespace. **Never commit them to Git or publish them on Pages.**
+- Only local loopback use is unauthenticated by default. Remote serving requires the generated token and explicit allowed Pages origin. This is a personal development lab, not hardened public model hosting.
 
 ## Architecture
 
@@ -156,17 +204,17 @@ Evaluation reconstructs the recorded validation split and rejects mismatched dat
 
 ## Web interface and tools
 
-The dark sidebar/chat layout retains saved conversations, chat search, copy/export/delete, per-conversation memory, text attachments, and generation settings. Model details/curves display checkpoint measurements. Training runs in Python, never as simulated browser progress. Oversized prompts produce explicit context errors; shorten memory/files/history or train with a larger context.
+The dark sidebar/chat layout retains saved conversations, chat search, copy/export/delete, per-conversation memory, text attachments, and generation settings. Model details display checkpoint measurements. The Train panel starts a separate Python process, polls real logged measurements, stops jobs, and loads saved weights. It never simulates browser training progress. Oversized prompts produce explicit context errors; shorten memory/files/history or train with a larger context.
 
 Memory/files are transient input context, never weight updates. History/memory live in browser localStorage; attachments are transient. Optional **Wikipedia web search** runs only on user request. Results appear separately and can be explicitly attached as model input. Search is not a replacement for generation; autonomous model-directed tool use is not implemented. Search requires internet; training/inference do not. Images, audio, fabricated reasoning traces and automatic chat training are unsupported.
 
-The server binds to loopback by default, serves only frontend assets, bounds request sizes and permits one model generation at a time. It has no authentication; keep it local. `--host 0.0.0.0` supports an isolated development preview. Secrets never belong in frontend code. `.env` is ignored; `.env.example` contains no required variables.
+The server binds to loopback by default, serves only frontend assets, bounds request sizes and permits one model operation at a time. Remote binds and cross-origin access enable bearer-token protection. Only explicitly configured origins are allowed; model checkpoints and raw datasets are never served as static files. Secrets never belong in frontend code. `.env` is ignored; `.env.example` contains no required variables.
 
 ## Structure
 
 ```text
 frontend/         HTML, CSS, browser client
-backend/          HTTP bridge and transient prompt context
+backend/          HTTP bridge, access protection and local training jobs
 kira/model/       Transformer, GQA, RoPE, RMSNorm, SwiGLU
 kira/tokenizer/   Byte BPE and tokenizer training CLI
 kira/training/    Dataset, AdamW, scheduler, training, checkpoints
@@ -176,7 +224,7 @@ kira/tools/       Optional separate web search
 configs/          JSON model/training settings
 data/             Original examples; ignored private corpora
 checkpoints/      Tracked README; ignored local tokenizer and weights
-scripts/          Reproducible pipeline smoke test
+scripts/          Pipeline smoke test, audit and mobile/Codespaces CPU helper
 tests/            Math, learning, resume and API tests
 ```
 
@@ -190,7 +238,7 @@ npm run check
 bash scripts/smoke.sh runs/smoke
 ```
 
-Tests verify tokenizer Unicode/special/unknown behavior, persisted vocabularies, RoPE, independent GQA reference math, causality, cache equivalence, logits, gradients, parameter updates, dataset shifting/splitting, save/load/exact resume, seed determinism, EOS, sampling and API boundaries. The overfit test trains for 100 updates and requires loss below 0.1 plus greedy `hello world` followed by EOS. That proves narrow learning, not general intelligence.
+Tests verify tokenizer Unicode/special/unknown behavior, persisted vocabularies, RoPE, independent GQA reference math, causality, cache equivalence, logits, gradients, parameter updates, dataset shifting/splitting, save/load/exact resume, seed determinism, EOS, sampling and API boundaries, real HTTP training/load/generation/cancellation, CORS/authentication and static Pages paths. The overfit test trains for 100 updates and requires loss below 0.1 plus greedy `hello world` followed by EOS. That proves narrow learning, not general intelligence.
 
 ## Development weights versus an actual Kira checkpoint
 

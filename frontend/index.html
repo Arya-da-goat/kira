@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Kira | Local model lab</title>
   <meta name="description" content="Train and run Kira's text Transformer locally.">
-  <link rel="stylesheet" href="/styles.css">
-  <script type="module" src="/app.js"></script>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
+      <button id="closeChats" class="mobile-only">Close conversations</button>
       <div class="sidebar-brand"><span class="brand-dot">K</span><strong>Kira</strong><small>LOCAL MODEL LAB</small></div>
       <button id="newChat" class="primary">＋ New conversation</button>
       <label class="field">Search conversations<input id="searchChats" type="search" placeholder="Search saved chats"></label>
@@ -23,8 +24,8 @@
     </aside>
     <main class="chat-panel">
       <header class="topbar">
-        <div><strong>Kira</strong><span class="engine-badge">Text Transformer</span></div>
-        <button id="inspectModel">Model & measurements</button>
+        <div><button id="openChats" class="mobile-only" aria-controls="sidebar" aria-expanded="false">Chats</button><strong class="desktop-brand">Kira</strong><span class="engine-badge">Text Transformer</span></div>
+        <nav class="header-actions" aria-label="Model tools"><button id="openConnection">Connect</button><button id="openTraining" class="primary">Train</button><button id="inspectModel">Model</button></nav>
       </header>
       <div id="modelStatus" class="status-banner" role="status">Connecting to local Python backend…</div>
       <section id="chat" class="chat-window" aria-live="polite"></section>
@@ -62,9 +63,60 @@
       </div>
     </main>
   </div>
+  <dialog id="connectionDialog">
+    <header><h2>Connect your backend</h2><button id="closeConnection">Close</button></header>
+    <p>GitHub Pages hosts this interface. Training and chat run in your Python backend, using your own weights. Keep that backend running while you use Kira.</p>
+    <form id="connectionForm">
+      <label class="field">Backend URL<input id="backendUrl" type="url" placeholder="https://your-codespace-3000.app.github.dev" autocomplete="off"></label>
+      <p>Leave blank when this page is served by the Python backend. A Pages site needs an HTTPS backend URL.</p>
+      <label class="field">Backend access token<input id="backendToken" type="password" autocomplete="off" placeholder="Copy from your backend terminal"></label>
+      <p>This protects your Python server; it is not an AI service key. The token is kept in this tab's memory and cleared on reload.</p>
+      <button class="primary" type="submit">Connect backend</button>
+    </form>
+    <p id="connectionStatus" role="status"></p>
+    <details><summary>Using your phone? Start with Codespaces</summary>
+      <ol>
+        <li>Open the Kira repository in your phone browser. Choose <strong>Code → Codespaces → Create codespace</strong>. Use Desktop site if needed.</li>
+        <li>Follow the <a href="https://github.com/Arya-da-goat/kira#github-pages-and-mobile-setup" target="_blank" rel="noopener noreferrer">installation and Pages instructions</a> in the README.</li>
+        <li>Start the Python backend, copy its access token, then forward port 3000 as <strong>Public</strong>. Only do this with the token protection enabled.</li>
+        <li>Paste the forwarded HTTPS address and token above. The backend must allow your Pages origin.</li>
+      </ol>
+      <p>Codespaces requires an available quota or billing allowance. Sleeping/stopped Codespaces cannot generate or train.</p>
+    </details>
+  </dialog>
+  <dialog id="trainingDialog">
+    <header><h2>Train your Kira</h2><button id="closeTraining">Close</button></header>
+    <p>Train a small, real text Transformer from scratch. A short run proves the pipeline works; it will not create a useful assistant. Chat history is never added automatically.</p>
+    <form id="trainingForm">
+      <fieldset id="trainingFields">
+        <div class="tool-row"><button type="button" id="exampleDataset">Use tiny example</button><label class="file-button">Upload dataset<input id="datasetFile" type="file" accept=".txt,.json,.jsonl"></label></div>
+        <label class="field">Training data<textarea id="datasetText" rows="6" required placeholder="Paste your own text. Separate distinct documents with a blank line."></textarea></label>
+        <div class="settings-grid">
+          <label>Format<select id="datasetFormat"><option value="txt">Text (.txt)</option><option value="json">JSON</option><option value="jsonl">JSONL</option></select></label>
+          <label>Optimizer steps<input id="trainingSteps" type="number" min="2" max="2000" value="100" required></label>
+          <label>Batch size<input id="trainingBatch" type="number" min="1" max="8" value="4" required></label>
+          <label>Learning rate<input id="trainingRate" type="number" min="0.00001" max="0.01" step="0.00001" value="0.001" required></label>
+          <label>Context tokens<input id="trainingContext" type="number" min="32" max="256" value="128" required></label>
+          <label>Max vocabulary<input id="trainingVocab" type="number" min="260" max="512" value="384" required></label>
+          <label>Seed<input id="trainingSeed" type="number" min="0" max="2147483647" value="42" required></label>
+        </div>
+        <p>2 layers · width 64 · 4 query / 2 KV heads · SwiGLU · AdamW. At least two distinct documents are required. The validation split is held out before tokenizer training. Web uploads are limited to 32 KiB; use Python for larger datasets and models.</p>
+        <label><input id="datasetConsent" type="checkbox" required> I have permission to train on this data and send it to my connected backend.</label>
+        <div class="tool-row"><button class="primary" type="submit">Start real training</button></div>
+      </fieldset>
+    </form>
+    <p id="trainingError" role="alert"></p>
+    <p id="trainingStatus" role="status">Connect a Python backend to see runs.</p>
+    <div id="trainingRuns"></div>
+    <h3>Selected run measurements</h3>
+    <pre id="trainingMetrics">No measurements yet.</pre>
+    <svg id="trainingChart" viewBox="0 0 600 220" role="img" aria-label="Actual training and validation loss"></svg>
+    <p id="trainingLegend"></p>
+    <p>Closing this panel does not stop training. Stop saves no new checkpoint; any previously saved checkpoint remains. Data, logs and weights stay in the backend's ignored runs/web directory.</p>
+  </dialog>
   <dialog id="modelDialog">
     <header><h2>Model & measurements</h2><button id="closeModel" aria-label="Close model details">Close</button></header>
-    <p>Values below come from the loaded checkpoint. Restart the backend to load newer weights.</p>
+    <p>Values below come from the loaded checkpoint. Load a saved run from Train to change weights.</p>
     <pre id="modelDetails"></pre>
     <h3>Recorded training loss</h3><svg id="lossChart" viewBox="0 0 600 220" role="img" aria-label="Measured training and validation loss"></svg>
     <p id="chartLegend"></p>

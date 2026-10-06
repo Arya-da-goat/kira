@@ -1,3 +1,5 @@
+import {api, initLab} from './lab.js';
+import {plotLoss} from './chart.js';
 const $ = (id) => document.getElementById(id);
 const STORAGE = 'kira-local-lab-v2';
 let conversations = [];
@@ -36,7 +38,7 @@ function renderThreads() {
     button.disabled = busy;
     button.onclick = () => {
       current = chat; contexts = []; $('attachments').textContent = '';
-      $('memory').value = current.memory || ''; render();
+      $('memory').value = current.memory || ''; render(); closeChats();
     };
     $('threadList').append(button);
   }
@@ -70,25 +72,20 @@ function render() {
   }
   $('chat').scrollTop = $('chat').scrollHeight;
 }
-async function api(path, body) {
-  const response = await fetch(path, body === undefined ? {} : {
-    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data));
-  return data;
-}
 async function refreshStatus() {
   try {
     modelStatus = await api('/api/status'); ready = modelStatus.ready;
     $('modelStatus').textContent = ready
       ? `${modelStatus.training_status} · step ${modelStatus.training_step} · ${modelStatus.parameters.toLocaleString()} parameters · context ${modelStatus.config.max_seq_len} · ${modelStatus.hardware.device.toUpperCase()}. Quality is not established by training steps.`
       : modelStatus.detail;
-  } catch {
+    return true;
+  } catch (error) {
     ready = false;
-    $('modelStatus').textContent = 'Python backend is unavailable. Start it with python -m backend.server. There is no browser inference fallback.';
+    $('modelStatus').textContent = `Backend disconnected. Open Connect to set it up. ${error.message}`;
+    return false;
+  } finally {
+    $('sendBtn').disabled = busy || !ready;
   }
-  $('sendBtn').disabled = busy || !ready;
 }
 $('composer').onsubmit = async (event) => {
   event.preventDefault();
@@ -122,7 +119,10 @@ $('composer').onsubmit = async (event) => {
 $('prompt').onkeydown = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); $('composer').requestSubmit(); }
 };
-$('newChat').onclick = freshChat;
+function closeChats() { $('sidebar').classList.remove('is-open'); $('openChats').setAttribute('aria-expanded', 'false'); }
+$('openChats').onclick = () => { $('sidebar').classList.add('is-open'); $('openChats').setAttribute('aria-expanded', 'true'); };
+$('closeChats').onclick = closeChats;
+$('newChat').onclick = () => { freshChat(); closeChats(); };
 $('searchChats').oninput = renderThreads;
 $('memory').oninput = () => { current.memory = $('memory').value; persist(); };
 $('deleteChat').onclick = () => {
@@ -174,25 +174,13 @@ $('webSearch').onclick = async () => {
   } catch (error) { $('searchResults').textContent = error.message; }
   finally { $('webSearch').disabled = false; }
 };
-function plot(history) {
-  const svg = $('lossChart'); svg.replaceChildren();
-  const values = history.flatMap(row => [row.train_loss, row.validation_loss].filter(Number.isFinite));
-  if (!values.length) { $('chartLegend').textContent = 'No training measurements loaded.'; return; }
-  const min = Math.min(...values), max = Math.max(...values), last = history.at(-1).step;
-  for (const [key, color] of [['train_loss', '#60a5fa'], ['validation_loss', '#34d399']]) {
-    const points = history.filter(row => Number.isFinite(row[key])).map(row => `${30 + 540 * row.step / last},${190 - 160 * (row[key] - min) / Math.max(max - min, .01)}`).join(' ');
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    line.setAttribute('points', points); line.setAttribute('fill', 'none'); line.setAttribute('stroke', color); line.setAttribute('stroke-width', '2'); svg.append(line);
-  }
-  $('chartLegend').textContent = `Blue: training · Green: validation. Steps 1–${last}; loss range ${min.toFixed(3)}–${max.toFixed(3)}. Checkpoint measurements only.`;
-}
 $('inspectModel').onclick = async () => {
   $('modelDialog').showModal(); await refreshStatus();
   $('modelDetails').textContent = JSON.stringify(modelStatus, null, 2);
-  try { plot((await api('/api/metrics')).history); }
+  try { plotLoss((await api('/api/metrics')).history, $('lossChart'), $('chartLegend')); }
   catch (error) { $('chartLegend').textContent = error.message; }
 };
 $('closeModel').onclick = () => $('modelDialog').close();
 if (conversations.length) { current = conversations[0]; $('memory').value = current.memory || ''; render(); }
 else freshChat();
-refreshStatus();
+initLab(refreshStatus, () => busy);
