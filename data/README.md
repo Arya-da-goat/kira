@@ -41,3 +41,13 @@ python -m kira.evaluation.evaluate --checkpoint checkpoints/my-run/latest.pt \
 ```
 
 Use the same configuration for tokenizer fitting and training. `configs/tiny.json` is a CPU development configuration; choose scale and training duration based on your data/hardware, then measure quality. Do not reuse a tokenizer trained on validation documents. The current loader and BPE trainer keep the corpus in memory and are intended for small datasets.
+
+## Train from the web interface
+
+Open **Train** in Kira, paste text or upload a `.txt`, `.json`, or `.jsonl` file
+(up to 32 KiB), choose settings, and start training. This sends your dataset to
+your connected Python backend, which saves it in ignored `runs/web/RUN_ID/`.
+The same document cleaning, deduplication and held-out split apply. Each new
+web run fits its own tokenizer and starts random model weights. Use the CLI
+for larger datasets or resuming an existing checkpoint. GitHub Pages hosts
+only the frontend; see the main README's mobile setup instructions.

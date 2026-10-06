@@ -66,3 +66,36 @@ pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; background:#
 .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
 @media(max-width:760px) { .sidebar{width:165px;padding:12px 8px} .topbar{padding:12px;flex-wrap:wrap} .engine-badge{display:none} .chat-window{padding:16px} .context-panel{margin:0 12px} .composer-container{padding:10px 12px} .sidebar-brand small{font-size:8px} }
 @media(max-width:480px) { .sidebar{width:110px} .sidebar button,.sidebar input{font-size:11px;padding:7px} .sidebar-footer p,.sidebar-brand small{display:none} .sidebar-brand strong{font-size:20px} .brand-dot{display:none} .settings-grid{grid-template-columns:repeat(2,1fr)} .tool-row{flex-wrap:wrap} .app-shell{border-radius:0} }
+.header-actions { display:flex; flex-wrap:wrap; gap:6px; }
+select { font:inherit; background:#0b1120; color:var(--text); padding:8px; border:1px solid var(--line); border-radius:7px; width:100%; }
+fieldset { border:0; margin:0; padding:0; min-width:0; }
+fieldset:disabled { opacity:.6; }
+#connectionForm { display:grid; gap:12px; }
+#connectionForm p { margin:0; font-size:12px; }
+#connectionStatus,#trainingStatus { overflow-wrap:anywhere; color:#bfdbfe; }
+#trainingChart { width:100%; background:#0b1120; border-radius:8px; }
+.run-row { display:flex; flex-wrap:wrap; gap:8px; padding:10px 0; border-bottom:1px solid var(--line); }
+.run-row button:first-child { flex:1; text-align:left; }
+@media(max-width:600px) {
+  body { padding:0; }
+  .app-shell { border-radius:0; }
+  .sidebar { display:none; }
+  .topbar { padding:10px 12px; flex-wrap:nowrap; }
+  .topbar button { padding:8px 10px; }
+  .welcome h1 { font-size:27px; }
+  .welcome { margin:2vh 0; }
+  dialog { padding:16px; max-height:94dvh; }
+  dialog h2 { font-size:20px; }
+  .settings-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .status-banner { padding:9px 12px; }
+}
+
+.mobile-only { display:none; }
+#trainingError { color:#fda4af; }
+@media(max-width:600px) {
+  .app-shell { position:relative; }
+  .mobile-only { display:inline-block; }
+  .desktop-brand { display:none; }
+  .sidebar.is-open { display:flex; position:absolute; inset:0 auto 0 0; z-index:2; width:min(290px,90vw); box-shadow:10px 0 40px #000a; padding:16px; }
+  .sidebar.is-open button,.sidebar.is-open input { font-size:14px; padding:9px; }
+}

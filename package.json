@@ -6,7 +6,7 @@
   "scripts": {
     "dev": ".venv/bin/python -m backend.server",
     "start": ".venv/bin/python -m backend.server",
-    "check": "node --check frontend/app.js"
+    "check": "node --check frontend/app.js && node --check frontend/lab.js && node --check frontend/chart.js"
   },
   "license": "MIT"
 }
