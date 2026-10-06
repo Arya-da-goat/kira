@@ -1,0 +1,31 @@
+hello world. this is a tiny training example written for kira.
+
+hello kira. a small model learns by predicting the next token.
+
+a red cup sits on the desk. the cup holds water.
+
+a blue bird rests in the tree. the bird sings softly.
+
+the sun rises in the morning. the sky becomes bright.
+
+the moon shines at night. the garden is quiet.
+
+one plus one equals two. two plus one equals three.
+
+we read a short sentence. then we write another sentence.
+
+a seed needs water and light. a plant grows from the seed.
+
+the cat sits by the window. the dog sleeps by the door.
+
+hello friend. welcome to this little text experiment.
+
+training changes weights. chatting does not change weights.
+
+save the model after training. load the model before generation.
+
+this example is too small to teach general language understanding.
+
+local text goes into the tokenizer. token ids go into the model.
+
+we test the code with small examples. measurements describe what happened.

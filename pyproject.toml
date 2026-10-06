@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kira-local"
+version = "0.2.0"
+description = "A trainable local text Transformer"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+dependencies = ["torch>=2.6,<3", "numpy>=1.26,<3", "fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "httpx>=0.27,<1"]
+
+[tool.setuptools.packages.find]
+include = ["kira*", "backend*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
