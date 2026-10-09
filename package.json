@@ -6,7 +6,19 @@
   "scripts": {
     "dev": ".venv/bin/python -m backend.server",
     "start": ".venv/bin/python -m backend.server",
-    "check": "node --check frontend/app.js && node --check frontend/lab.js && node --check frontend/chart.js"
+    "check": "node scripts/check_frontend.mjs",
+    "test": "node --test tests/frontend/*.test.js",
+    "vendor": "node scripts/vendor_frontend.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@fortawesome/free-solid-svg-icons": "7.3.1",
+    "@highlightjs/cdn-assets": "11.11.1",
+    "dompurify": "3.4.16",
+    "jsdom": "27.4.0",
+    "marked": "18.1.0"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
 }

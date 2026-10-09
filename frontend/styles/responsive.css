@@ -1,0 +1,235 @@
+@keyframes arrive {
+  from {
+    opacity:0;
+    transform:translateY(4px)
+  }
+  to {
+    opacity:1;
+    transform:translateY(0)
+  }
+}
+@keyframes pulse {
+  50% {
+    opacity:.3
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    animation:none!important;
+    transition:none!important;
+    scroll-behavior:auto!important
+  }
+}
+@media(min-width:1400px) {
+  .chat-window {
+    padding-top:40px
+  }
+  .welcome {
+    margin-top:10vh
+  }
+}
+@media(max-width:1000px) {
+  .sidebar {
+    width:228px
+  }
+  .topbar-caption {
+    display:none
+  }
+  .topbar {
+    padding:0 22px
+  }
+  .starter-grid {
+    gap:8px
+  }
+  .starter {
+    padding:16px 12px
+  }
+  .starter small {
+    font-size:9px
+  }
+  .composer-container {
+    padding-left:24px;
+    padding-right:24px
+  }
+}
+@media(max-width:760px) {
+  .sidebar {
+    position:fixed;
+    inset:0 auto 0 0;
+    width:min(296px,85vw);
+    z-index:6;
+    display:none;
+    padding-top:24px
+  }
+  .drawer-open .sidebar {
+    display:flex
+  }
+  .topbar {
+    height:64px;
+    min-height:64px;
+    padding:0 16px
+  }
+  .topbar-title {
+    gap:10px
+  }
+  .header-actions {
+    gap:5px
+  }
+  .topbar .status-pill {
+    font-size:9px
+  }
+  .chat-window {
+    padding:24px 20px 12px
+  }
+  .welcome {
+    margin-top:5vh
+  }
+  .welcome-mark {
+    width:51px;
+    height:56px;
+    font-size:35px;
+    margin-bottom:22px
+  }
+  .welcome h1 {
+    font-size:36px
+  }
+  .welcome-description {
+    font-size:13px;
+    margin-bottom:28px
+  }
+  .starter-grid {
+    grid-template-columns:1fr;
+    text-align:left;
+    gap:9px;
+    max-width:400px;
+    margin:auto
+  }
+  .starter {
+    display:grid;
+    grid-template-columns:22px 1fr 14px;
+    gap:0 12px;
+    padding:13px 16px;
+    align-items:center
+  }
+  .starter>.fa-icon {
+    grid-row:1/3;
+    margin:0
+  }
+  .starter strong {
+    font-size:12px
+  }
+  .starter small {
+    grid-column:2;
+    font-size:10px
+  }
+  .starter-arrow {
+    position:static;
+    grid-column:3;
+    grid-row:1/3
+  }
+  .capability-note {
+    font-size:9px
+  }
+  .composer-container {
+    padding:0 15px max(12px,env(safe-area-inset-bottom))
+  }
+  .composer {
+    padding:13px 12px 9px
+  }
+  .composer textarea {
+    font-size:16px;
+    min-height:47px;
+    max-height:120px
+  }
+  .keyboard-hint {
+    display:none
+  }
+  .composer-footnote {
+    font-size:9px
+  }
+  .disclaimer {
+    font-size:8px;
+    margin-top:5px
+  }
+  .message {
+    gap:12px;
+    margin-bottom:26px
+  }
+  .message .avatar {
+    width:25px;
+    height:25px;
+    font-size:16px
+  }
+  .markdown {
+    font-size:14px
+  }
+  .message-metrics {
+    font-size:8px
+  }
+  .connection-banner,.error-banner {
+    padding:10px 15px;
+    font-size:11px
+  }
+  .connection-banner button {
+    padding:6px;
+    font-size:10px
+  }
+  .connection-banner button .fa-icon {
+    display:none
+  }
+  dialog {
+    padding:18px;
+    max-height:92dvh;
+    width:calc(100vw - 24px)
+  }
+  dialog>header {
+    top:-18px
+  }
+  dialog input,dialog textarea,dialog select {
+    font-size:16px
+  }
+  .settings-grid {
+    gap:16px 12px
+  }
+  .settings-grid label {
+    font-size:11px
+  }
+  .run-row button {
+    font-size:10px
+  }
+}
+@media(max-width:380px) {
+  .status-pill {
+    max-width:95px;
+    overflow:hidden
+  }
+  .context-hint {
+    display:none
+  }
+  .header-actions .subtle-button {
+    padding:7px 9px
+  }
+  .topbar-title .title-divider {
+    display:none
+  }
+  .topbar {
+    padding:0 10px
+  }
+  .welcome h1 {
+    font-size:32px
+  }
+  .chat-window {
+    padding-left:15px;
+    padding-right:15px
+  }
+  .settings-grid {
+    grid-template-columns:1fr
+  }
+  .facts-grid {
+    grid-template-columns:1fr 1fr
+  }
+}
+* {
+  scrollbar-width:thin;
+  scrollbar-color:#373940 transparent
+}

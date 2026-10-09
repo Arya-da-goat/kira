@@ -1,0 +1,16 @@
+{
+  "marked.js": "054d73b676031dc8e60e247ef228044fbeebe10af14bac1a6e53852f80f826e5",
+  "purify.js": "c44274a7959cfdd4da871fa78a5d5fbbef55db68d118c5c0833bc4b5cf9633ad",
+  "highlight.js": "bfcca5550cb9d62482162e1d1fb90c822d2d35036b556544817441b795b7103c",
+  "MARKED-LICENSE": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+  "DOMPURIFY-LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "HIGHLIGHT-LICENSE": "6c081431591d9df696c82dc598fe1423765b8a299b200ed00b281afd0f64c490",
+  "FONTAWESOME-LICENSE": "20c6f40715a567c97b80f6944beb8bb325835cab47ea7dcab89ee3b8e077eced",
+  "language-python.js": "4112a5c44dc7a4c56a772347bd318f246aa1ea51e0d6cb6aba78b25c3e60d524",
+  "language-javascript.js": "d893654be08f10fe656739ec83cf2cdeb7ea82a26b332b9fea88d4d215c00d89",
+  "language-json.js": "7dd0922802ac593d34da3466175377c9efb4612ee2ea97ddafa1fce618a510d9",
+  "language-bash.js": "d2290ecb0b7d522df0d91d54ee216c673e0c504decd48ef15197b3cab5cb7474",
+  "language-css.js": "8024c97edb80335f7aded04543de058770eab34939b9b2db8334fb8aa16f0e45",
+  "language-xml.js": "2d843265c0bdd3e50f107e6473196b5f525c0ea68de83c40f9f30ffbbea6896f",
+  "fontawesome.svg": "05c50e2ba2a1e0d2d82a414ffaa54df2663ec04d4f5f9de78ab53e9eaaa8071a"
+}

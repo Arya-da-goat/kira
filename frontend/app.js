@@ -1,186 +1,156 @@
 import {api, initLab} from './lab.js';
 import {plotLoss} from './chart.js';
-const $ = (id) => document.getElementById(id);
-const STORAGE = 'kira-local-lab-v2';
+import {$, icon, initNavigation, notice} from './ui.js';
+import {loadConversations, saveConversations, newConversation, memoryContext, precedingHistory, replaceTurn} from './conversations.js';
+import {createMessageView} from './messages.js';
+import {initContext} from './context.js';
+import {initSettings, generationSettings} from './settings.js';
+
 let conversations = [];
-try {
-  const stored = JSON.parse(localStorage.getItem(STORAGE) || '[]');
-  if (Array.isArray(stored)) conversations = stored.filter(item => typeof item.id === 'string' && Array.isArray(item.messages));
-} catch { /* A corrupt or unavailable browser store starts a fresh session. */ }
-let current;
-let busy = false;
-let ready = false;
-let modelStatus = {};
-let contexts = [];
+try { conversations = loadConversations(localStorage); } catch { /* Private browsing may disable storage. */ }
+if (!conversations.length) conversations = [newConversation()];
+let current = conversations[0], busy = false, ready = false, modelStatus = {}, editing = null;
+const closeDrawer = initNavigation();
+const context = initContext(() => current.id, () => busy);
+const messages = createMessageView($('messages'), {edit, regenerate});
 
 function persist() {
-  try { localStorage.setItem(STORAGE, JSON.stringify(conversations)); }
-  catch { $('generationStatus').textContent = 'Browser storage is full or unavailable. Export to keep this conversation.'; }
+  try { saveConversations(localStorage, conversations); }
+  catch { notice('Browser storage is full or unavailable. Export to keep this conversation.', true); }
 }
-function freshChat() {
-  if (busy) return;
-  current = {id: crypto.randomUUID(), messages: [], memory: ''};
-  conversations.unshift(current);
-  contexts = [];
-  $('attachments').textContent = '';
-  $('memory').value = '';
-  persist(); render();
+function updateControls() {
+  $('sendBtn').disabled = busy || !ready;
+  for (const id of ['newChat','deleteChat','attachFile']) $(id).disabled = busy;
+  $('prompt').readOnly = busy;
+  $('generating').hidden = !busy;
+  $('composer').setAttribute('aria-busy', String(busy));
+  for (const element of document.querySelectorAll('[data-model-action]')) element.disabled = busy || !ready;
+  for (const element of $('threadList').querySelectorAll('button')) element.disabled = busy;
+  context.refresh();
 }
 function renderThreads() {
   $('threadList').replaceChildren();
   const query = $('searchChats').value.toLowerCase();
   for (const chat of conversations) {
     const title = chat.messages.find(message => message.role === 'user')?.content || 'New conversation';
-    if (!chat.messages.some(message => String(message.content).toLowerCase().includes(query)) && !title.toLowerCase().includes(query)) continue;
-    const button = document.createElement('button');
-    button.textContent = title.slice(0, 60);
-    button.classList.toggle('active', chat.id === current.id);
+    if (query && !chat.messages.some(message => message.content.toLowerCase().includes(query)) && !title.toLowerCase().includes(query)) continue;
+    const button = document.createElement('button'), label = document.createElement('span');
+    label.textContent = title.slice(0, 70); button.title = title.slice(0, 200);
+    button.append(icon('message'), label); button.classList.toggle('active', chat.id === current.id);
+    if (chat.id === current.id) button.setAttribute('aria-current', 'page');
     button.disabled = busy;
-    button.onclick = () => {
-      current = chat; contexts = []; $('attachments').textContent = '';
-      $('memory').value = current.memory || ''; render(); closeChats();
-    };
+    button.onclick = () => { if (!busy) selectConversation(chat); };
     $('threadList').append(button);
   }
+  if (!$('threadList').children.length) { const empty = document.createElement('p'); empty.className = 'empty-history'; empty.textContent = 'No matching conversations.'; $('threadList').append(empty); }
 }
-function render() {
-  renderThreads();
-  $('chat').replaceChildren();
-  if (!current.messages.length) {
-    const welcome = document.createElement('div');
-    welcome.className = 'welcome';
-    const heading = document.createElement('h1'); heading.textContent = 'Your model. Your training.';
-    const description = document.createElement('p');
-    description.textContent = 'Kira runs a text Transformer from local weights. The example dataset is a software test, not language pretraining. Expect poor output until you train on a suitable corpus.';
-    welcome.append(heading, description); $('chat').append(welcome);
-  }
-  for (const message of current.messages) {
-    const article = document.createElement('article'); article.className = `message ${message.role === 'user' ? 'user' : 'assistant'}`;
-    const header = document.createElement('header'); header.textContent = message.role === 'user' ? 'You' : 'Kira · local generation';
-    const text = document.createElement('div'); text.className = 'text'; text.textContent = message.content || '(No visible text generated)';
-    const footer = document.createElement('footer');
-    if (message.metrics) {
-      const m = message.metrics;
-      footer.textContent = `${m.generated_tokens} tokens · ${m.tokens_per_second.toFixed(1)} tokens/sec · ${m.prompt_tokens} context tokens · stop: ${m.stop_reason}`;
-    }
-    const copy = document.createElement('button'); copy.textContent = 'Copy';
-    copy.onclick = async () => {
-      try { await navigator.clipboard.writeText(message.content); copy.textContent = 'Copied'; }
-      catch { $('generationStatus').textContent = 'Clipboard unavailable; select and copy the message text.'; }
-    };
-    footer.append(copy); article.append(header, text, footer); $('chat').append(article);
-  }
-  $('chat').scrollTop = $('chat').scrollHeight;
+function renderConversation(scroll = false) {
+  $('welcome').hidden = current.messages.length > 0 || busy;
+  messages.sync(current.messages); renderThreads(); updateControls();
+  if (scroll) requestAnimationFrame(() => { $('chat').scrollTop = $('chat').scrollHeight; });
 }
+function updateContextHint() {
+  const labels = [$('useHistory').checked ? 'History included' : 'Text completion'];
+  if (current.memoryEnabled && current.memory) labels.push('Memory on');
+  $('contextHint').textContent = labels.join(' · ');
+}
+function selectConversation(chat) {
+  current = chat; context.clear(); editing = null; $('editBar').hidden = true;
+  $('memory').value = current.memory; $('memoryEnabled').checked = current.memoryEnabled;
+  $('prompt').value = ''; resizeComposer(); messages.reset(); updateContextHint(); renderConversation(true); closeDrawer();
+}
+function statusLabel(state, label) { $('statusPill').dataset.state = state; $('statusText').textContent = label; }
 async function refreshStatus() {
   try {
-    modelStatus = await api('/api/status'); ready = modelStatus.ready;
-    $('modelStatus').textContent = ready
-      ? `${modelStatus.training_status} · step ${modelStatus.training_step} · ${modelStatus.parameters.toLocaleString()} parameters · context ${modelStatus.config.max_seq_len} · ${modelStatus.hardware.device.toUpperCase()}. Quality is not established by training steps.`
-      : modelStatus.detail;
+    modelStatus = await api('/api/status');
+    ready = Boolean(modelStatus.ready && !modelStatus.training_active && !modelStatus.busy);
+    if (modelStatus.busy || busy) statusLabel('generating', 'Model busy');
+    else if (modelStatus.training_active) statusLabel('training', 'Training');
+    else statusLabel(modelStatus.ready ? 'ready' : 'unloaded', modelStatus.ready ? 'Model loaded' : 'No weights');
+    $('modelStatus').textContent = modelStatus.training_active
+      ? 'Training is running. Chat becomes available when the worker finishes or is stopped.'
+      : modelStatus.detail || `Loaded on ${modelStatus.hardware?.device?.toUpperCase()} · ${modelStatus.config?.max_seq_len} token context · quality unverified`;
+    $('connectionBanner').hidden = ready || busy;
+    $('sidebarModelValue').textContent = modelStatus.ready
+      ? `${modelStatus.hardware.device.toUpperCase()} · ${modelStatus.config.max_seq_len} context · step ${modelStatus.training_step}`
+      : modelStatus.busy ? 'Model operation in progress' : modelStatus.training_active ? 'Training in progress' : 'No checkpoint loaded';
     return true;
   } catch (error) {
-    ready = false;
-    $('modelStatus').textContent = `Backend disconnected. Open Connect to set it up. ${error.message}`;
+    ready = false; statusLabel('offline', 'Backend offline'); $('connectionBanner').hidden = false;
+    $('sidebarModelValue').textContent = 'Backend disconnected';
+    $('modelStatus').textContent = error.message;
+    modelStatus = {ready: false, detail: error.message};
     return false;
-  } finally {
-    $('sendBtn').disabled = busy || !ready;
-  }
+  } finally { updateControls(); }
 }
-$('composer').onsubmit = async (event) => {
-  event.preventDefault();
-  if (busy || !ready || !$('prompt').value.trim()) return;
-  const prompt = $('prompt').value;
-  const history = $('useHistory').checked ? current.messages.map(({role, content}) => ({role, content})) : [];
-  const request = {prompt, messages: history, memory: current.memory || '', context: [...contexts],
-    temperature: Number($('temperature').value), top_k: Number($('topK').value),
-    top_p: Number($('topP').value), max_new_tokens: Number($('maxTokens').value),
-    repetition_penalty: Number($('penalty').value), seed: Number($('seed').value)};
-  busy = true; $('sendBtn').disabled = true; $('newChat').disabled = true; $('deleteChat').disabled = true;
-  $('generationStatus').textContent = 'Generating…';
-  current.messages.push({role: 'user', content: prompt}); persist(); render();
+function resizeComposer() { $('prompt').style.height = 'auto'; $('prompt').style.height = `${Math.min($('prompt').scrollHeight, 160)}px`; }
+async function submit(prompt, index = current.messages.length) {
+  if (busy || !ready || !prompt.trim()) return;
+  let request;
+  try { request = {prompt, messages: precedingHistory(current, index, $('useHistory').checked), memory: memoryContext(current), context: context.texts(), ...generationSettings()}; }
+  catch (error) { notice(error.message, true); return; }
+  const followScroll = $('chat').scrollHeight - $('chat').scrollTop - $('chat').clientHeight < 180;
+  busy = true; statusLabel('generating', 'Generating'); notice('Generating from local weights…'); renderConversation(followScroll);
   try {
     const result = await api('/api/chat', request);
-    current.messages.push({role: 'assistant', content: result.text, metrics: {
-      generated_tokens: result.generated_tokens, tokens_per_second: result.tokens_per_second,
-      prompt_tokens: result.prompt_tokens, stop_reason: result.stop_reason
-    }});
-    $('prompt').value = '';
-    $('generationStatus').textContent = `Generated ${result.generated_tokens} tokens in ${result.seconds.toFixed(2)}s`;
+    current.messages = replaceTurn(current, index, prompt, result); persist();
+    $('prompt').value = ''; editing = null; $('editBar').hidden = true; resizeComposer();
+    notice(`Generated ${result.generated_tokens} tokens in ${result.seconds.toFixed(2)}s.`);
   } catch (error) {
-    // An HTTP failure is a UI error, never an invented model reply.
-    current.messages.pop();
-    $('generationStatus').textContent = error.message;
+    notice(error.message, true); // Preserve the draft and previous messages; no fabricated reply.
   } finally {
-    busy = false; $('sendBtn').disabled = !ready; $('newChat').disabled = false; $('deleteChat').disabled = false;
-    persist(); render();
+    busy = false; renderConversation(followScroll); await refreshStatus();
   }
+}
+function edit(index) {
+  if (busy || !ready) return;
+  editing = index; $('prompt').value = current.messages[index].content; $('editBar').hidden = false;
+  resizeComposer(); $('prompt').focus();
+}
+async function regenerate(index) {
+  if (busy || !ready) return;
+  const userIndex = index - 1;
+  if (current.messages[userIndex]?.role !== 'user') return;
+  await submit(current.messages[userIndex].content, userIndex);
+}
+$('composer').onsubmit = event => { event.preventDefault(); submit($('prompt').value, editing ?? current.messages.length); };
+$('prompt').oninput = resizeComposer;
+$('prompt').onkeydown = event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); $('composer').requestSubmit(); }
 };
-$('prompt').onkeydown = (event) => {
-  if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); $('composer').requestSubmit(); }
-};
-function closeChats() { $('sidebar').classList.remove('is-open'); $('openChats').setAttribute('aria-expanded', 'false'); }
-$('openChats').onclick = () => { $('sidebar').classList.add('is-open'); $('openChats').setAttribute('aria-expanded', 'true'); };
-$('closeChats').onclick = closeChats;
-$('newChat').onclick = () => { freshChat(); closeChats(); };
+$('cancelEdit').onclick = () => { editing = null; $('editBar').hidden = true; $('prompt').value = ''; resizeComposer(); };
+$('newChat').onclick = () => { if (busy) return; const chat = newConversation(); conversations.unshift(chat); selectConversation(chat); persist(); $('prompt').focus(); };
 $('searchChats').oninput = renderThreads;
-$('memory').oninput = () => { current.memory = $('memory').value; persist(); };
 $('deleteChat').onclick = () => {
   if (busy) return;
   conversations = conversations.filter(chat => chat.id !== current.id);
-  if (!conversations.length) freshChat();
-  else { current = conversations[0]; contexts = []; $('attachments').textContent = ''; $('memory').value = current.memory || ''; persist(); render(); }
+  if (!conversations.length) conversations.push(newConversation());
+  selectConversation(conversations[0]); persist();
 };
 $('exportChat').onclick = () => {
-  const blob = new Blob([JSON.stringify(current, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob); const link = document.createElement('a');
-  link.href = url; link.download = 'kira-conversation.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const url = URL.createObjectURL(new Blob([JSON.stringify(current, null, 2)], {type: 'application/json'}));
+  const link = document.createElement('a'); link.href = url; link.download = 'kira-conversation.json'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
-function addContext(text, label) {
-  if (contexts.length >= 8) throw new Error('At most 8 context items are supported. Clear attachments first.');
-  contexts.push(text); $('attachments').textContent += `${label}\n`;
-}
-$('fileInput').onchange = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  const chatId = current.id;
-  try {
-    if (!/\.(txt|md|json|jsonl|csv|py|js|log)$/i.test(file.name) || file.size > 32768) throw new Error('Attach a supported text file under 32 KiB. Images are not supported.');
-    const text = await file.text();
-    if (current.id !== chatId) return;
-    if (text.includes('\0')) throw new Error('This file contains binary data. Attach UTF-8 text.');
-    addContext(`File: ${file.name}\n${text}`, `File: ${file.name} (${file.size} bytes)`);
-  } catch (error) { $('generationStatus').textContent = error.message; }
-  event.target.value = '';
-};
-$('clearContext').onclick = () => { contexts = []; $('attachments').textContent = ''; };
-$('webSearch').onclick = async () => {
-  const query = $('searchQuery').value.trim(); if (!query) return;
-  $('webSearch').disabled = true; $('searchResults').textContent = 'Searching Wikipedia…';
-  try {
-    const data = await api('/api/tools/search', {query}); $('searchResults').replaceChildren();
-    if (!data.results.length) $('searchResults').textContent = 'No results.';
-    for (const result of data.results) {
-      const article = document.createElement('article'); const link = document.createElement('a');
-      link.textContent = result.title; link.href = result.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-      const snippet = document.createElement('p'); snippet.textContent = result.snippet;
-      const attach = document.createElement('button'); attach.textContent = 'Add as model context';
-      attach.onclick = () => {
-        try { addContext(`Search result: ${result.title}\n${result.url}\n${result.snippet}`, `Search: ${result.title}`); attach.disabled = true; }
-        catch (error) { $('generationStatus').textContent = error.message; }
-      };
-      article.append(link, snippet, attach); $('searchResults').append(article);
-    }
-  } catch (error) { $('searchResults').textContent = error.message; }
-  finally { $('webSearch').disabled = false; }
-};
+$('memory').oninput = () => { current.memory = $('memory').value; updateContextHint(); persist(); };
+$('memoryEnabled').onchange = () => { current.memoryEnabled = $('memoryEnabled').checked; updateContextHint(); persist(); };
+$('clearMemory').onclick = () => { current.memory = ''; $('memory').value = ''; updateContextHint(); persist(); };
+for (const starter of document.querySelectorAll('[data-prompt]')) starter.onclick = () => { $('prompt').value = starter.dataset.prompt; resizeComposer(); $('prompt').focus(); };
+document.addEventListener('keydown', event => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !document.querySelector('dialog[open]')) { event.preventDefault(); $('newChat').click(); }
+});
+$('retryConnection').onclick = refreshStatus;
 $('inspectModel').onclick = async () => {
-  $('modelDialog').showModal(); await refreshStatus();
+  closeDrawer(); $('modelDialog').showModal(); await refreshStatus();
   $('modelDetails').textContent = JSON.stringify(modelStatus, null, 2);
+  const facts = modelStatus.ready ? {'Device': modelStatus.hardware.device.toUpperCase(), 'Parameters': modelStatus.parameters.toLocaleString(), 'Context': `${modelStatus.config.max_seq_len} tokens`, 'Training step': modelStatus.training_step, 'Layers': modelStatus.config.num_layers, 'Query / KV heads': `${modelStatus.config.num_attention_heads} / ${modelStatus.config.num_kv_heads}`} : {'Model': modelStatus.busy ? 'Operation in progress' : 'No checkpoint loaded'};
+  $('modelFacts').replaceChildren();
+  for (const [label,value] of Object.entries(facts)) { const wrapper = document.createElement('div'); wrapper.className = 'fact'; const term = document.createElement('dt'), detail = document.createElement('dd'); term.textContent = label; detail.textContent = value; wrapper.append(term,detail); $('modelFacts').append(wrapper); }
   try { plotLoss((await api('/api/metrics')).history, $('lossChart'), $('chartLegend')); }
   catch (error) { $('chartLegend').textContent = error.message; }
 };
 $('closeModel').onclick = () => $('modelDialog').close();
-if (conversations.length) { current = conversations[0]; $('memory').value = current.memory || ''; render(); }
-else freshChat();
-initLab(refreshStatus, () => busy);
+initSettings(updateContextHint); selectConversation(current); initLab(refreshStatus, () => busy);
+// Status polling changes status controls only, never reparses or rebuilds message bodies.
+setInterval(() => { if (!document.hidden && !busy) refreshStatus(); }, 12000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) refreshStatus(); });
