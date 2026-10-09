@@ -19,7 +19,7 @@ def test_browser_access_boundary(tmp_path):
     headers = {'Origin': ORIGIN, 'Authorization': 'Bearer ' + credential}
     with TestClient(app) as client:
         # Static assets are public; every API (including compute and training data) is protected.
-        for asset in ('/', '/app.js', '/lab.js', '/chart.js', '/styles.css'):
+        for asset in ('/', '/app.js', '/lab.js', '/chart.js', '/styles.css', '/api.js', '/vendor/fontawesome.svg', '/vendor/purify.js'):
             assert client.get(asset).status_code == 200
         for endpoint in ('/api/status', '/api/metrics', '/api/training', '/api/training/example'):
             response = client.get(endpoint, headers={'Origin': ORIGIN})
@@ -36,6 +36,7 @@ def test_browser_access_boundary(tmp_path):
             'Access-Control-Request-Method': 'POST'}).status_code == 400
     with TestClient(create_app(tmp_path / 'absent.pt', 'cpu', runs_dir=tmp_path / 'local')) as client:
         assert client.post('/api/training', json={'text': 'a\n\nb'}, headers={'Origin': 'https://untrusted.example'}).status_code == 403
+        assert client.get('/api/status', headers={'Origin': 'http://['}).status_code == 403
         # Matching an attacker-controlled Host must not defeat the local-only origin guard.
         assert client.post('/api/training', json={'text': 'a\n\nb'}, headers={
             'Origin': 'http://evil.example', 'Host': 'evil.example'}).status_code == 403
@@ -56,6 +57,7 @@ def test_real_web_training_load_generate_and_stop(tmp_path, monkeypatch):
         response = client.post('/api/training', json=dict(data, steps=4, sequence_length=32))
         assert response.status_code == 200, response.text
         run_id = response.json()['id']
+        assert client.get('/api/status').json()['training_active']
         assert client.post('/api/training', json=data).status_code == 409
         assert client.post(f'/api/training/{run_id}/load', json={}).status_code == 409
         deadline = time.monotonic() + 45
@@ -66,6 +68,7 @@ def test_real_web_training_load_generate_and_stop(tmp_path, monkeypatch):
             time.sleep(0.05)
         assert run['status'] == 'completed', run
         assert run['checkpoint_available']
+        assert not client.get('/api/status').json()['training_active']
         assert len(run['history']) == 4
         assert run['history'][-1]['gradient_norm'] > 0
         assert run['history'][-1]['tokens_processed'] > 0

@@ -11,10 +11,11 @@ def test_no_checkpoint_and_public_assets(tmp_path):
         assert client.get('/app.js').status_code == 200
         assert not client.get('/api/status').json()['ready']
         assert client.post('/api/chat', json={'prompt': 'hello'}).status_code == 503
-        for path in ('/.env', '/checkpoints/latest.pt', '/pyproject.toml', '/data/example/tiny.txt'):
+        for path in ('/.env', '/checkpoints/latest.pt', '/pyproject.toml', '/data/example/tiny.txt', '/vendor/../../backend/server.py', '/vendor/%2e%2e/%2e%2e/.env'):
             assert client.get(path).status_code == 404
         assert client.post('/api/chat', content=b'x' * 140000).status_code == 413
         assert client.post('/api/chat', json={'prompt': 'a', 'temperature': -1}).status_code == 422
+        assert client.post('/api/chat', json={'prompt': 'a', 'context': ['x' * 33000]}).status_code == 422
 
 
 def test_context_and_search_tool(tmp_path, monkeypatch):

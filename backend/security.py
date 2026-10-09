@@ -17,7 +17,10 @@ class BackendAccess:
         host = headers.get(b'host', b'').decode('latin1')
         same_origin = origin in (f'http://{host}', f'https://{host}')
         # Without a token, accept only local browser origins (also prevents DNS rebinding).
-        local_origin = urlsplit(origin).hostname in ('localhost', '127.0.0.1', '::1')
+        try:
+            local_origin = urlsplit(origin).hostname in ('localhost', '127.0.0.1', '::1')
+        except ValueError:
+            return await JSONResponse({'detail': 'Invalid browser origin'}, status_code=403)(scope, receive, send)
         if origin and origin not in self.origins and not (same_origin and (self.token or local_origin)):
             return await JSONResponse({'detail': 'Browser origin is not allowed'}, status_code=403)(scope, receive, send)
         supplied = headers.get(b'authorization', b'')

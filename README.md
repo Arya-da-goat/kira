@@ -8,7 +8,7 @@ No pretrained language model is bundled. A fresh checkout has no weights. Traini
 
 ## Quick Start
 
-Supported Python: **3.9+**, with **3.11 recommended for CPU testing**. The reference CPU constraints target Python 3.9 and 3.11. Node is optional; there are no npm dependencies or build step. Run the commands from the repository root. Internet is needed to install packages; core training/inference then runs locally without credentials.
+Supported Python: **3.9+**, with **3.11 recommended for CPU testing**. The reference CPU constraints target Python 3.9 and 3.11. Node is optional for running Kira. Pinned browser assets are included locally, so no npm install, CDN or build step is needed to chat. Frontend development/tests use Node 22.12 LTS or Node 24+ (24 tested). Run the commands from the repository root. Internet is needed to install packages; core training/inference then runs locally without credentials.
 
 ### 1. Clone and create a Python environment
 
@@ -204,9 +204,18 @@ Evaluation reconstructs the recorded validation split and rejects mismatched dat
 
 ## Web interface and tools
 
-The dark sidebar/chat layout retains saved conversations, chat search, copy/export/delete, per-conversation memory, text attachments, and generation settings. Model details display checkpoint measurements. The Train panel starts a separate Python process, polls real logged measurements, stops jobs, and loads saved weights. It never simulates browser training progress. Oversized prompts produce explicit context errors; shorten memory/files/history or train with a larger context.
+The dark interface has a collapsible desktop sidebar, keyboard-contained mobile drawer, responsive composer, saved conversations, conversation search, export/delete, local Font Awesome icons, and dedicated generation, memory, tools, model and training panels.
 
-Memory/files are transient input context, never weight updates. History/memory live in browser localStorage; attachments are transient. Optional **Wikipedia web search** runs only on user request. Results appear separately and can be explicitly attached as model input. Search is not a replacement for generation; autonomous model-directed tool use is not implemented. Search requires internet; training/inference do not. Images, audio, fabricated reasoning traces and automatic chat training are unsupported.
+- **Messages:** assistant Markdown is sanitized with DOMPurify; raw HTML is displayed as text, remote images are omitted, unsafe links are removed, and links cannot control the opener. Fenced Python/JavaScript/JSON/Bash/CSS/HTML code is highlighted lazily with a copy control. User text remains literal text. Rendering preserves existing message DOM; the latest 80 messages are displayed initially, with a Show earlier messages control for older turns.
+- **Actions:** Copy copies actual text. Edit loads a user message into the composer. Regenerate makes a new inference request. Both use current sampling settings, memory and attached context, and replace the selected turn plus later turns **only after successful generation**. A failed request preserves the old conversation and draft. Regenerate with unchanged seed/settings is intentionally reproducible.
+- **Composer:** Enter sends, Shift+Enter inserts a newline, and IME composition does not accidentally send. Ctrl/Cmd+K creates a new chat when no modal is open. The scrollable conversation stays separate from the composer. Reduced-motion preferences disable animation.
+- **Settings:** temperature, top-k/p, repetition penalty, seed, maximum new tokens and optional last-40-message history affect actual API requests. Temperature zero is greedy. Preferences stay in browser storage. Memory has a separate opt-in toggle per conversation, editable notes and a Clear action; turning it off excludes notes from the model request without deleting them.
+- **Attachments:** UTF-8 text files only, up to 32 KiB each, eight context items / 48 KB combined. Each chip shows filename, type and actual byte size, and can be removed individually. Raw text is supplied to the model on generation; the app does not claim semantic understanding. Images, PDFs, audio and binary files are rejected. Attachments/search results are transient and are not added automatically when regenerating in a later session.
+- **Status:** loaded/unloaded weights, backend offline, active training and generation reflect backend state. No fake reasoning trace or artificial progress is shown. Visible errors give actionable input/connection guidance; full Python logs stay at the backend.
+
+ Model details display checkpoint measurements. The Train panel starts a separate Python process, polls real logged measurements, stops jobs, and loads saved weights. It never simulates browser training progress. Oversized prompts produce explicit context errors; shorten memory/files/history or train with a larger context.
+
+Memory/files are input context, never weight updates. History and editable memory notes persist in browser localStorage; file contents and attached search snippets are transient. Previously saved notes start disabled unless the user explicitly enabled the memory toggle. Optional **Wikipedia web search** runs only on user request. Results appear separately and can be explicitly attached as model input. Search is not a replacement for generation; autonomous model-directed tool use is not implemented. Search requires internet; training/inference do not. Images, audio, fabricated reasoning traces and automatic chat training are unsupported.
 
 The server binds to loopback by default, serves only frontend assets, bounds request sizes and permits one model operation at a time. Remote binds and cross-origin access enable bearer-token protection. Only explicitly configured origins are allowed; model checkpoints and raw datasets are never served as static files. Secrets never belong in frontend code. `.env` is ignored; `.env.example` contains no required variables.
 
@@ -224,8 +233,8 @@ kira/tools/       Optional separate web search
 configs/          JSON model/training settings
 data/             Original examples; ignored private corpora
 checkpoints/      Tracked README; ignored local tokenizer and weights
-scripts/          Pipeline smoke test, audit and mobile/Codespaces CPU helper
-tests/            Math, learning, resume and API tests
+scripts/          Pipeline smoke test, audit, browser asset maintenance, CPU helper
+tests/            Math, learning, resume, API and frontend security/state tests
 ```
 
 ## Verification
@@ -234,7 +243,9 @@ tests/            Math, learning, resume and API tests
 python -m pytest -q -s
 python -m compileall -q kira backend tests
 python -m pip check
+npm ci --ignore-scripts  # Optional Node tooling for frontend development/tests
 npm run check
+npm test
 bash scripts/smoke.sh runs/smoke
 ```
 
@@ -259,7 +270,7 @@ git diff --check
 
 The audit examines existing tracked files and non-ignored new files, checking file sizes, generated/private artifacts, common secret patterns and developer-specific paths without printing secret values. It is a useful check, not a guarantee that every secret is detectable. Inspect the actual diff before publishing. `.gitignore` excludes weights everywhere, all checkpoint outputs, private/raw/processed corpora, virtual environments, caches, logs, generated results and local credentials. Only the tiny synthetic fixture is allowed under `data/`. Tests generate their own checkpoint fixtures; no weights are version-controlled.
 
-The repository contains an optional dependency-free `package.json` for startup and JavaScript syntax shortcuts. Python remains the required runtime.
+The optional `package.json` provides startup, syntax checks, frontend tests and reproducible asset maintenance. All npm packages are development dependencies; browser runtime files are vendored under `frontend/vendor/` with version locks, licenses and a SHA256 manifest. No `node_modules/`, app bundles, caches or build directories are tracked. Run `npm ci --ignore-scripts` then `npm run vendor` only when refreshing these pinned assets. See [third-party notices](THIRD_PARTY_NOTICES.md). Python remains the required model runtime.
 
 ## Limitations
 

@@ -8,13 +8,13 @@ import secrets
 from dataclasses import asdict
 from pathlib import Path
 import threading
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
 import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 import uvicorn
 from backend.context import build_prompt
 from backend.security import BackendAccess
@@ -36,7 +36,7 @@ class ChatRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=16000)
     messages: list[Message] = Field(default_factory=list, max_length=40)
     memory: str = Field(default='', max_length=8000)
-    context: list[str] = Field(default_factory=list, max_length=8)
+    context: list[Annotated[str, StringConstraints(max_length=32768)]] = Field(default_factory=list, max_length=8)
     max_new_tokens: int = Field(default=64, ge=1, le=512)
     temperature: float = Field(default=0.8, ge=0, le=5, allow_inf_nan=False)
     top_k: int = Field(default=40, ge=0, le=100000)
@@ -114,14 +114,23 @@ def create_app(checkpoint_path='checkpoints/latest.pt', device_name='auto', *,
 
     @app.get('/api/status')
     def status():
-        if model is None:
-            return {'ready': False, 'training_status': 'untrained / no loaded weights', 'detail': error}
-        return {'ready': True, 'model': 'Kira dense text Transformer',
-                'training_status': training_status(checkpoint['state']),
-                'training_step': checkpoint['state']['step'],
-                'parameters': sum(p.numel() for p in model.parameters()),
-                'config': asdict(model.config), 'hardware': describe(device, 'fp32'),
-                'latest_metrics': checkpoint['state']['history'][-1] if checkpoint['state']['history'] else None}
+        # Never read a mixture of old/new model state during checkpoint replacement.
+        if not lock.acquire(blocking=False):
+            return {'ready': False, 'busy': True, 'training_active': False,
+                    'detail': 'The model is generating or loading weights. Try again shortly.'}
+        try:
+            active = jobs.busy()
+            operational = {'training_active': active, 'busy': False}
+            if model is None:
+                return dict(operational, ready=False, training_status='untrained / no loaded weights', detail=error)
+            return dict(operational, ready=True, model='Kira dense text Transformer',
+                        training_status=training_status(checkpoint['state']),
+                        training_step=checkpoint['state']['step'],
+                        parameters=sum(p.numel() for p in model.parameters()),
+                        config=asdict(model.config), hardware=describe(device, 'fp32'),
+                        latest_metrics=checkpoint['state']['history'][-1] if checkpoint['state']['history'] else None)
+        finally:
+            lock.release()
 
     @app.get('/api/metrics')
     def metrics():
@@ -216,21 +225,14 @@ def create_app(checkpoint_path='checkpoints/latest.pt', device_name='auto', *,
     def index():
         return FileResponse(ROOT / 'frontend/index.html')
 
-    @app.get('/app.js')
-    def javascript():
-        return FileResponse(ROOT / 'frontend/app.js', media_type='text/javascript')
-
-    @app.get('/lab.js')
-    def lab_javascript():
-        return FileResponse(ROOT / 'frontend/lab.js', media_type='text/javascript')
-
-    @app.get('/chart.js')
-    def chart_javascript():
-        return FileResponse(ROOT / 'frontend/chart.js', media_type='text/javascript')
-
-    @app.get('/styles.css')
-    def stylesheet():
-        return FileResponse(ROOT / 'frontend/styles.css', media_type='text/css')
+    @app.get('/{asset:path}')
+    def frontend_asset(asset: str):
+        public = (ROOT / 'frontend').resolve()
+        path = (public / asset).resolve()
+        if not path.is_relative_to(public) or not path.is_file() or path.suffix not in {'.js', '.css', '.svg'}:
+            raise HTTPException(404, 'Asset not found')
+        media = {'.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml'}
+        return FileResponse(path, media_type=media[path.suffix])
 
     return app
 

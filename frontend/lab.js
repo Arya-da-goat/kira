@@ -1,40 +1,16 @@
 import {plotLoss} from './chart.js';
+import {api, connectionURL, setConnection} from './api.js';
+import {icon} from './ui.js';
+export {api} from './api.js';
 
 const $ = id => document.getElementById(id);
-const URL_KEY = 'kira-backend-url';
-let backendUrl = '';
-let accessToken = ''; // Deliberately never persisted, placed in a URL, or exported.
 let selectedRun = null;
 let pending = false;
 let polling = null;
-try { backendUrl = localStorage.getItem(URL_KEY) || ''; } catch { /* Storage is optional. */ }
-
-export async function api(path, body) {
-  if (!backendUrl && location.hostname.endsWith('.github.io')) {
-    throw new Error('GitHub Pages needs a connected Python backend.');
-  }
-  const headers = {};
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  let response;
-  try {
-    response = await fetch(`${backendUrl}${path}`, {
-      method: body === undefined ? 'GET' : 'POST', headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(120000)
-    });
-  } catch {
-    throw new Error('Cannot reach backend. Check its URL, HTTPS, allowed origin, and that it is running.');
-  }
-  let data;
-  try { data = await response.json(); }
-  catch { throw new Error('This URL did not return the Kira API. Check the forwarded port and its visibility.'); }
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data));
-  return data;
-}
+let runsRevision = 0;
 
 export function initLab(refreshModel, isGenerating) {
-  $('backendUrl').value = backendUrl;
+  $('backendUrl').value = connectionURL();
   $('openConnection').onclick = () => $('connectionDialog').showModal();
   $('closeConnection').onclick = () => $('connectionDialog').close();
   $('connectionForm').onsubmit = async event => {
@@ -52,11 +28,9 @@ export function initLab(refreshModel, isGenerating) {
         }
         if (location.protocol === 'https:' && url.protocol !== 'https:') throw new Error('This HTTPS page needs an HTTPS backend.');
       }
-      backendUrl = value;
-      accessToken = $('backendToken').value.trim();
+      setConnection(value, $('backendToken').value.trim());
       selectedRun = null;
       $('backendToken').value = '';
-      try { localStorage.setItem(URL_KEY, backendUrl); } catch { /* Connection still works without storage. */ }
       $('connectionStatus').textContent = 'Connecting…';
       const connected = await refreshModel();
       $('connectionStatus').textContent = connected ? 'Connected. Open Train to create or load a checkpoint.' : $('modelStatus').textContent;
@@ -68,7 +42,19 @@ export function initLab(refreshModel, isGenerating) {
     selectedRun = run.id;
     const last = run.history.at(-1);
     $('trainingStatus').textContent = `${run.status} · ${run.phase} · ${last?.step || 0}/${run.max_steps} measured updates${run.error ? ` · ${run.error}` : ''}`;
-    $('trainingMetrics').textContent = last ? JSON.stringify(last, null, 2) : 'No optimizer measurements yet.';
+    $('trainingMetrics').replaceChildren();
+    const measurements = last ? {
+      'Training loss': last.train_loss.toFixed(4), 'Validation loss': last.validation_loss?.toFixed(4) ?? 'Not evaluated at this step',
+      'Tokens processed': last.tokens_processed.toLocaleString(), 'Tokens / second': last.tokens_per_second.toFixed(1),
+      'Gradient norm': last.gradient_norm.toFixed(4), 'Learning rate': last.learning_rate.toExponential(2),
+      'Perplexity': last.perplexity?.toFixed(2) ?? 'Not available at this step', 'Token accuracy': last.token_accuracy == null ? 'Not evaluated at this step' : `${(last.token_accuracy * 100).toFixed(2)}%`,
+      'Training documents': run.train_documents, 'Validation documents': run.validation_documents
+    } : {'Updates': 'No measurements yet'};
+    for (const [label,value] of Object.entries(measurements)) {
+      const wrapper = document.createElement('div'); wrapper.className = 'fact';
+      const term = document.createElement('dt'), detail = document.createElement('dd');
+      term.textContent = label; detail.textContent = value; wrapper.append(term, detail); $('trainingMetrics').append(wrapper);
+    }
     plotLoss(run.history, $('trainingChart'), $('trainingLegend'));
   }
   async function action(run, verb) {
@@ -88,21 +74,24 @@ export function initLab(refreshModel, isGenerating) {
     finally { pending = false; }
   }
   async function refreshRuns() {
+    const revision = ++runsRevision;
     try {
       const {runs} = await api('/api/training');
+      if (revision !== runsRevision) return;
       $('trainingRuns').replaceChildren();
       $('trainingFields').disabled = runs.some(run => run.status === 'running');
       for (const run of runs) {
         const row = document.createElement('article'); row.className = 'run-row';
         const summary = document.createElement('button');
         summary.textContent = `${new Date(run.created_at).toLocaleString()} · ${run.status} · step ${run.history.at(-1)?.step || 0}`;
+        summary.prepend(icon('file'));
         summary.onclick = () => showRun(run);
         row.append(summary);
         if (run.status === 'running') {
-          const stop = document.createElement('button'); stop.textContent = 'Stop training';
+          const stop = document.createElement('button'); stop.textContent = 'Stop training'; stop.prepend(icon('stop'));
           stop.onclick = () => action(run, 'stop'); row.append(stop);
         } else if (run.checkpoint_available) {
-          const load = document.createElement('button'); load.textContent = 'Load into chat';
+          const load = document.createElement('button'); load.textContent = 'Load into chat'; load.prepend(icon('check'));
           load.className = 'primary'; load.disabled = runs.some(item => item.status === 'running');
           load.onclick = () => action(run, 'load'); row.append(load);
         }
@@ -116,12 +105,13 @@ export function initLab(refreshModel, isGenerating) {
         plotLoss([], $('trainingChart'), $('trainingLegend'));
       }
     } catch (error) {
+      if (revision !== runsRevision) return;
       $('trainingError').textContent = error.message;
       $('trainingFields').disabled = true;
     }
   }
   async function poll() {
-    await refreshRuns();
+    if (!pending && !isGenerating()) { await refreshRuns(); await refreshModel(); }
     if ($('trainingDialog').open) polling = setTimeout(poll, 2000);
   }
   $('openTraining').onclick = () => {
@@ -136,6 +126,7 @@ export function initLab(refreshModel, isGenerating) {
       $('trainingStatus').textContent = 'Tiny synthetic example loaded. This is test data, not language pretraining.';
     } catch (error) { $('trainingError').textContent = error.message; }
   };
+  $('uploadDataset').onclick = () => $('datasetFile').click();
   $('datasetFile').onchange = async event => {
     const file = event.target.files[0]; if (!file) return;
     try {
@@ -159,6 +150,7 @@ export function initLab(refreshModel, isGenerating) {
         vocab_size: Number($('trainingVocab').value), seed: Number($('trainingSeed').value)});
       selectedRun = run.id;
       await refreshRuns();
+      await refreshModel();
       $('trainingStatus').scrollIntoView({block: 'center', behavior: 'smooth'});
     } catch (error) { $('trainingError').textContent = error.message; $('trainingFields').disabled = false; }
     finally { pending = false; }

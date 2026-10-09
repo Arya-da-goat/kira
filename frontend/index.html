@@ -2,76 +2,99 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Kira | Local model lab</title>
-  <meta name="description" content="Train and run Kira's text Transformer locally.">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101113">
+  <meta name="description" content="Your local personal AI. Train and run Kira's own text Transformer.">
+  <title>Kira — Your local personal AI</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#prompt">Skip to message input</a>
   <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <button id="closeChats" class="mobile-only">Close conversations</button>
-      <div class="sidebar-brand"><span class="brand-dot">K</span><strong>Kira</strong><small>LOCAL MODEL LAB</small></div>
-      <button id="newChat" class="primary">＋ New conversation</button>
-      <label class="field">Search conversations<input id="searchChats" type="search" placeholder="Search saved chats"></label>
-      <div id="threadList" class="thread-list"></div>
+    <button id="sidebarBackdrop" class="drawer-backdrop" aria-label="Close conversations" title="Close conversations" hidden></button>
+    <aside class="sidebar" id="sidebar" aria-label="Conversations and settings">
+      <div class="sidebar-brand"><span class="brand-mark" aria-hidden="true">K</span><strong>Kira<span class="brand-period">.</span></strong><button id="closeChats" class="icon-button" data-icon="chevron-left" aria-label="Collapse sidebar" title="Collapse sidebar"></button></div>
+      <button id="newChat" class="new-chat" data-icon="plus">New chat<span class="key-hint">Ctrl K</span></button>
+      <label class="search-field"><span data-icon="magnifying-glass" aria-hidden="true"></span><span class="sr-only">Search conversations</span><input id="searchChats" type="search" placeholder="Search conversations" autocomplete="off"></label>
+      <div class="section-label">YOUR CONVERSATIONS</div>
+      <nav id="threadList" class="thread-list" aria-label="Saved conversations"></nav>
       <div class="sidebar-footer">
-        <button id="exportChat">Export conversation</button>
-        <button id="deleteChat">Delete conversation</button>
-        <p>History and memory stay in this browser. Chatting never updates model weights.</p>
+        <button id="inspectModel" class="model-card"><span class="model-card-icon" data-icon="circle-nodes" aria-hidden="true"></span><span><strong>Kira Transformer</strong><small id="sidebarModelValue">Checking backend</small></span><span data-icon="chevron-down" aria-hidden="true"></span></button>
+        <div class="sidebar-controls"><button data-open="settingsDialog" data-icon="gear">Settings</button><button id="exportChat" class="icon-button" data-icon="download" title="Export conversation" aria-label="Export conversation"></button><button id="deleteChat" class="icon-button" data-icon="trash" title="Delete conversation" aria-label="Delete conversation"></button></div>
+        <p class="privacy-note" data-icon="server">Your weights. Your workspace.</p>
       </div>
     </aside>
-    <main class="chat-panel">
+    <main id="mainPanel" class="chat-panel">
       <header class="topbar">
-        <div><button id="openChats" class="mobile-only" aria-controls="sidebar" aria-expanded="false">Chats</button><strong class="desktop-brand">Kira</strong><span class="engine-badge">Text Transformer</span></div>
-        <nav class="header-actions" aria-label="Model tools"><button id="openConnection">Connect</button><button id="openTraining" class="primary">Train</button><button id="inspectModel">Model</button></nav>
+        <div class="topbar-title"><button id="openChats" class="icon-button" data-icon="bars" title="Open sidebar" aria-label="Open sidebar" aria-controls="sidebar" aria-expanded="true"></button><span class="title-divider"></span><strong>Kira</strong><span class="topbar-caption">Personal workspace</span></div>
+        <nav class="header-actions" aria-label="Model actions"><span id="statusPill" class="status-pill" data-state="connecting"><span class="status-dot"></span><span id="statusText">Connecting</span></span><button id="openConnection" class="icon-button" data-icon="link" title="Connect Python backend" aria-label="Connect Python backend"></button><button id="openTraining" class="subtle-button" data-icon="flask">Train</button></nav>
       </header>
-      <div id="modelStatus" class="status-banner" role="status">Connecting to local Python backend…</div>
-      <section id="chat" class="chat-window" aria-live="polite"></section>
-      <section class="context-panel">
-        <details>
-          <summary>Memory, files & search tools</summary>
-          <p>These supply context to the model. They do not train it. Images and audio are unsupported.</p>
-          <label class="field">Memory for this conversation<textarea id="memory" rows="2" placeholder="Optional notes to include with each request"></textarea></label>
-          <div class="tool-row"><label class="file-button">Attach text file<input id="fileInput" type="file" accept=".txt,.md,.json,.jsonl,.csv,.py,.js,.log"></label><button id="clearContext">Clear attached context</button></div>
-          <div id="attachments"></div>
-          <div class="tool-row"><input id="searchQuery" placeholder="Search Wikipedia (requires internet)" aria-label="Search query"><button id="webSearch">Search web</button></div>
-          <div id="searchResults" aria-live="polite"></div>
-        </details>
-        <details>
-          <summary>Generation settings</summary>
-          <div class="settings-grid">
-            <label>Temperature<input id="temperature" type="number" value="0.8" min="0" max="5" step="0.1"></label>
-            <label>Top-k<input id="topK" type="number" value="40" min="0" max="100000"></label>
-            <label>Top-p<input id="topP" type="number" value="0.95" min="0.01" max="1" step="0.01"></label>
-            <label>New tokens<input id="maxTokens" type="number" value="48" min="1" max="512"></label>
-            <label>Repeat penalty<input id="penalty" type="number" value="1" min="0.1" max="10" step="0.1"></label>
-            <label>Seed<input id="seed" type="number" value="42" min="0" max="9007199254740991"></label>
+      <div id="connectionBanner" class="connection-banner" hidden><span data-icon="circle-info" aria-hidden="true"></span><p id="modelStatus" role="status">Connecting to Python backend.</p><button id="retryConnection" data-icon="rotate">Retry</button></div>
+      <div id="errorBanner" class="error-banner" role="alert" hidden><span data-icon="circle-exclamation" aria-hidden="true"></span><p id="errorText"></p><button id="dismissError" class="icon-button" data-icon="xmark" title="Dismiss error" aria-label="Dismiss error"></button></div>
+      <section id="chat" class="chat-window" aria-label="Conversation">
+        <section id="welcome" class="welcome">
+          <div class="welcome-mark" aria-hidden="true">K</div>
+          <p class="eyebrow">A SPACE OF YOUR OWN</p>
+          <h1>Hello, I'm <span>Kira.</span></h1>
+          <p class="welcome-description">Your local personal AI.<br>Built on your model. Shaped by your training.</p>
+          <div class="starter-grid">
+            <button class="starter" data-prompt="hello"><span data-icon="message" aria-hidden="true"></span><strong>Start simple</strong><small>Try a short text prefix</small><span class="starter-arrow" data-icon="arrow-right" aria-hidden="true"></span></button>
+            <button class="starter" data-prompt="Once upon a time"><span data-icon="pen" aria-hidden="true"></span><strong>Continue a story</strong><small>See what your weights generate</small><span class="starter-arrow" data-icon="arrow-right" aria-hidden="true"></span></button>
+            <button class="starter" data-prompt="the sun"><span data-icon="book-open" aria-hidden="true"></span><strong>Explore a completion</strong><small>Compare generation settings</small><span class="starter-arrow" data-icon="arrow-right" aria-hidden="true"></span></button>
           </div>
-          <label><input id="useHistory" type="checkbox"> Include previous messages as context</label>
-          <p>Unchecked sends a raw text completion. Small contexts may not fit conversation history.</p>
-        </details>
+          <p class="capability-note">Text prefixes to experiment with. Results depend on your training data and checkpoint.</p>
+        </section>
+        <div id="messages" class="messages"></div>
+        <div id="generating" class="generating" role="status" hidden><span class="avatar">K</span><span class="generation-pulse"></span><span>Generating tokens</span></div>
       </section>
       <div class="composer-container">
+        <div id="editBar" class="edit-bar" hidden><span>Editing an earlier turn. Later messages are replaced only after successful generation.</span><button id="cancelEdit" class="icon-button" data-icon="xmark" title="Cancel editing" aria-label="Cancel editing"></button></div>
+        <div id="attachments" class="attachments" aria-label="Attached model context"></div>
         <form id="composer" class="composer">
-          <label for="prompt" class="sr-only">Prompt</label>
-          <textarea id="prompt" rows="2" placeholder="Enter a text prefix for Kira to continue…" required></textarea>
-          <div class="composer-actions"><span id="generationStatus" role="status">Local weights · no inference API</span><button id="sendBtn" class="primary" type="submit" disabled>Generate ↑</button></div>
+          <label for="prompt" class="sr-only">Message Kira</label>
+          <textarea id="prompt" rows="2" maxlength="16000" placeholder="Message Kira…" required></textarea>
+          <div class="composer-actions"><div class="composer-tools"><button id="attachFile" type="button" class="icon-button" data-icon="paperclip" title="Attach a text file" aria-label="Attach a text file"></button><input id="fileInput" type="file" accept=".txt,.md,.json,.jsonl,.csv,.py,.js,.log" hidden><button type="button" data-open="memoryDialog" class="icon-button" data-icon="brain" title="Conversation memory" aria-label="Conversation memory"></button><button type="button" data-open="toolsDialog" class="icon-button" data-icon="globe" title="Search Wikipedia" aria-label="Search Wikipedia"></button><button type="button" data-open="settingsDialog" class="icon-button" data-icon="sliders" title="Generation settings" aria-label="Generation settings"></button><span id="contextHint" class="context-hint">Text completion</span></div><button id="sendBtn" class="send-button" type="submit" data-icon="arrow-up" title="Send message" aria-label="Send message" disabled></button></div>
         </form>
-        <p class="disclaimer">Architecture code does not equal intelligence. Useful language behavior comes from training the model on data.</p>
+        <div class="composer-footnote"><span id="generationStatus" role="status">Responses come from your local model.</span><span class="keyboard-hint">Enter to send · Shift Enter for a new line</span></div>
+        <p class="disclaimer">Development model · Language quality is unverified. Chatting does not train the model.</p>
       </div>
     </main>
   </div>
-  <dialog id="connectionDialog">
-    <header><h2>Connect your backend</h2><button id="closeConnection">Close</button></header>
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+    <header><div><p class="eyebrow">MAKE IT YOURS</p><h2 id="settingsTitle">Generation settings</h2></div><button class="icon-button" data-close="settingsDialog" data-icon="xmark" title="Close settings" aria-label="Close settings"></button></header>
+    <p>These settings control sampling from Kira's real logits. Temperature 0 uses deterministic greedy decoding.</p>
+    <form id="settingsForm"><div class="settings-grid">
+      <label>Temperature<input id="temperature" type="number" value="0.8" min="0" max="5" step="0.1" required><small>0 for greedy, higher for more variation</small></label>
+      <label>Maximum new tokens<input id="maxTokens" type="number" value="48" min="1" max="512" required><small>Generation also stops at the context limit</small></label>
+      <label>Top-k<input id="topK" type="number" value="40" min="0" max="100000" required><small>0 disables the top-k filter</small></label>
+      <label>Top-p<input id="topP" type="number" value="0.95" min="0.01" max="1" step="0.01" required><small>1 disables nucleus filtering</small></label>
+      <label>Repetition penalty<input id="penalty" type="number" value="1" min="0.1" max="10" step="0.1" required><small>1 leaves repeated tokens unchanged</small></label>
+      <label>Seed<input id="seed" type="number" value="42" min="0" max="9007199254740991" required><small>Same weights and settings reproduce sampling</small></label>
+    </div><label class="toggle-row"><span><strong>Include conversation history</strong><small>Last 40 messages; small contexts may overflow. Off sends raw text completion.</small></span><input id="useHistory" type="checkbox"></label><button class="primary" type="submit" data-icon="check">Save settings</button></form>
+  </dialog>
+  <dialog id="memoryDialog" aria-labelledby="memoryTitle">
+    <header><h2 id="memoryTitle">Conversation memory</h2><button class="icon-button" data-close="memoryDialog" data-icon="xmark" title="Close memory" aria-label="Close memory"></button></header>
+    <p>Your notes stay in this browser. When enabled, they are sent as text context to the model. They do not update its weights or create automatic understanding.</p>
+    <label class="toggle-row"><span><strong>Use memory for this conversation</strong><small>Turn off to keep notes without sending them.</small></span><input id="memoryEnabled" type="checkbox"></label>
+    <label class="field">Your notes<textarea id="memory" rows="6" maxlength="8000" placeholder="Add information you want to include as model context…"></textarea></label>
+    <button id="clearMemory" data-icon="trash">Clear memory</button>
+  </dialog>
+  <dialog id="toolsDialog" aria-labelledby="toolsTitle">
+    <header><h2 id="toolsTitle">Search tools</h2><button class="icon-button" data-close="toolsDialog" data-icon="xmark" title="Close tools" aria-label="Close tools"></button></header>
+    <p>Wikipedia search runs only when you ask. Add a result as context to send it with your next prompt. The tool does not generate Kira's answer.</p>
+    <form id="searchForm" class="tool-row"><label class="sr-only" for="searchQuery">Wikipedia query</label><input id="searchQuery" maxlength="300" placeholder="Search Wikipedia" required><button id="webSearch" type="submit" data-icon="magnifying-glass">Search</button></form>
+    <div id="searchResults" aria-live="polite"></div>
+  </dialog>
+  <dialog id="connectionDialog" aria-labelledby="connectionTitle">
+    <header><h2 id="connectionTitle">Connect your backend</h2><button id="closeConnection" class="icon-button" data-icon="xmark" title="Close panel" aria-label="Close panel"></button></header>
     <p>GitHub Pages hosts this interface. Training and chat run in your Python backend, using your own weights. Keep that backend running while you use Kira.</p>
     <form id="connectionForm">
       <label class="field">Backend URL<input id="backendUrl" type="url" placeholder="https://your-codespace-3000.app.github.dev" autocomplete="off"></label>
       <p>Leave blank when this page is served by the Python backend. A Pages site needs an HTTPS backend URL.</p>
       <label class="field">Backend access token<input id="backendToken" type="password" autocomplete="off" placeholder="Copy from your backend terminal"></label>
       <p>This protects your Python server; it is not an AI service key. The token is kept in this tab's memory and cleared on reload.</p>
-      <button class="primary" type="submit">Connect backend</button>
+      <button class="primary" type="submit" data-icon="link">Connect backend</button>
     </form>
     <p id="connectionStatus" role="status"></p>
     <details><summary>Using your phone? Start with Codespaces</summary>
@@ -84,12 +107,12 @@
       <p>Codespaces requires an available quota or billing allowance. Sleeping/stopped Codespaces cannot generate or train.</p>
     </details>
   </dialog>
-  <dialog id="trainingDialog">
-    <header><h2>Train your Kira</h2><button id="closeTraining">Close</button></header>
+  <dialog id="trainingDialog" aria-labelledby="trainingTitle">
+    <header><h2 id="trainingTitle">Train your Kira</h2><button id="closeTraining" class="icon-button" data-icon="xmark" title="Close panel" aria-label="Close panel"></button></header>
     <p>Train a small, real text Transformer from scratch. A short run proves the pipeline works; it will not create a useful assistant. Chat history is never added automatically.</p>
     <form id="trainingForm">
       <fieldset id="trainingFields">
-        <div class="tool-row"><button type="button" id="exampleDataset">Use tiny example</button><label class="file-button">Upload dataset<input id="datasetFile" type="file" accept=".txt,.json,.jsonl"></label></div>
+        <div class="tool-row"><button type="button" id="exampleDataset" data-icon="file">Use tiny example</button><button type="button" id="uploadDataset" data-icon="upload">Upload dataset</button><input id="datasetFile" type="file" accept=".txt,.json,.jsonl" hidden></div>
         <label class="field">Training data<textarea id="datasetText" rows="6" required placeholder="Paste your own text. Separate distinct documents with a blank line."></textarea></label>
         <div class="settings-grid">
           <label>Format<select id="datasetFormat"><option value="txt">Text (.txt)</option><option value="json">JSON</option><option value="jsonl">JSONL</option></select></label>
@@ -102,22 +125,22 @@
         </div>
         <p>2 layers · width 64 · 4 query / 2 KV heads · SwiGLU · AdamW. At least two distinct documents are required. The validation split is held out before tokenizer training. Web uploads are limited to 32 KiB; use Python for larger datasets and models.</p>
         <label><input id="datasetConsent" type="checkbox" required> I have permission to train on this data and send it to my connected backend.</label>
-        <div class="tool-row"><button class="primary" type="submit">Start real training</button></div>
+        <div class="tool-row"><button class="primary" type="submit" data-icon="bolt">Start training</button></div>
       </fieldset>
     </form>
     <p id="trainingError" role="alert"></p>
     <p id="trainingStatus" role="status">Connect a Python backend to see runs.</p>
     <div id="trainingRuns"></div>
     <h3>Selected run measurements</h3>
-    <pre id="trainingMetrics">No measurements yet.</pre>
+    <dl id="trainingMetrics" class="facts-grid"></dl>
     <svg id="trainingChart" viewBox="0 0 600 220" role="img" aria-label="Actual training and validation loss"></svg>
     <p id="trainingLegend"></p>
     <p>Closing this panel does not stop training. Stop saves no new checkpoint; any previously saved checkpoint remains. Data, logs and weights stay in the backend's ignored runs/web directory.</p>
   </dialog>
-  <dialog id="modelDialog">
-    <header><h2>Model & measurements</h2><button id="closeModel" aria-label="Close model details">Close</button></header>
+  <dialog id="modelDialog" aria-labelledby="modelTitle">
+    <header><h2 id="modelTitle">Model & measurements</h2><button id="closeModel" class="icon-button" data-icon="xmark" title="Close panel" aria-label="Close panel"></button></header>
     <p>Values below come from the loaded checkpoint. Load a saved run from Train to change weights.</p>
-    <pre id="modelDetails"></pre>
+    <dl id="modelFacts" class="facts-grid"></dl><details><summary>Checkpoint details</summary><pre id="modelDetails"></pre></details>
     <h3>Recorded training loss</h3><svg id="lossChart" viewBox="0 0 600 220" role="img" aria-label="Measured training and validation loss"></svg>
     <p id="chartLegend"></p>
     <h3>Train locally</h3>
