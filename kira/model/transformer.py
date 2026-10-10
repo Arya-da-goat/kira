@@ -94,6 +94,9 @@ class KiraTransformer(nn.Module):
 def next_token_loss(logits: torch.Tensor, targets: torch.Tensor, reduction: str = 'mean',
                     aux_loss: torch.Tensor | None = None) -> torch.Tensor:
     """Targets are shifted tokens; non-target positions use -100."""
+    valid_mask = (targets != -100)
+    if not valid_mask.any():
+        raise ValueError('Cannot calculate cross-entropy on an entirely masked batch (all targets are -100)')
     ce_loss = F.cross_entropy(
         logits.reshape(-1, logits.shape[-1]).float(),
         targets.reshape(-1),

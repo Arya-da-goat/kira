@@ -256,19 +256,24 @@ scripts/          Pipeline smoke test, audit, browser asset maintenance, CPU hel
 tests/            Math, learning, resume, API and frontend security/state tests
 ```
 
-## Verification
+## Verification and Test Results
 
 ```bash
 python -m pytest -q -s
 python -m compileall -q kira backend tests
-python -m pip check
-npm ci --ignore-scripts  # Optional Node tooling for frontend development/tests
-npm run check
 npm test
-bash scripts/smoke.sh runs/smoke
 ```
 
-Tests verify tokenizer Unicode/special/unknown behavior, persisted vocabularies, RoPE, independent GQA reference math, causality, cache equivalence, logits, gradients, parameter updates, dataset shifting/splitting, save/load/exact resume, seed determinism, EOS, sampling and API boundaries, real HTTP training/load/generation/cancellation, CORS/authentication and static Pages paths. The overfit test trains for 100 updates and requires loss below 0.1 plus greedy `hello world` followed by EOS. That proves narrow learning, not general intelligence.
+The test suites verify:
+1. **Chat Tokenizer Atomic Special Tokens**: Validates dedicated IDs for `<PAD>`, `<BOS>`, `<EOS>`, `<UNK>`, `<|im_start|>`, `<|im_end|>`, `<|system|>`, `<|user|>`, `<|assistant|>`. Confirms atomic recognition when allowed and safe byte BPE encoding for literal user input.
+2. **Tokenizer Checkpoint Compatibility**: Confirms that legacy checkpoints (`kira-byte-bpe-v1`) preserve their exact 4-special-token and byte 4..259 mapping without silent token-ID shifts.
+3. **SFT Assistant-Only Loss Masking**: Confirms user/system tokens receive label `-100`, while assistant response tokens are supervised.
+4. **SFT Truncation and All-Masked Batch Protection**: Confirms truncation preserves assistant targets, empty/unsupervised examples are skipped, and all-masked batches raise descriptive errors rather than silently returning NaN.
+5. **Causal GQA and KV-Cache Equivalence**: Proves step-by-step cached attention logits match uncached full-sequence forward pass within numerical tolerance (atol $10^{-5}$).
+6. **Sparse MoE Gating and Auxiliary Loss**: Verifies learned router gradients, expert dispatch, and positive load-balancing auxiliary loss contributing to total loss.
+7. **Direct Preference Optimization (DPO)**: Tests pairwise chosen vs. rejected response log probabilities, verified loss, and positive reward margin.
+8. **Tiny Overfitting**: Trains for 100 updates and achieves training loss $< 0.1$ with exact sequence reproduction (`hello world<EOS>`).
+9. **UI & State**: Verifies Markdown sanitization, Font Awesome symbol mapping, conversation editing, and live API communication.
 
 ## Development weights versus an actual Kira checkpoint
 

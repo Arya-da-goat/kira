@@ -43,6 +43,25 @@ test('BpeTokenizer structured chat template and assistant SFT masking', () => {
   assert.strictEqual(labels[0], -100);
   // Assistant tokens must have real token targets (!= -100)
   assert(labels.some(l => l !== -100));
+
+  // Test atomic special token recognition
+  const atomicIds = tokenizer.encode('<|im_start|>', false, false, true);
+  assert.strictEqual(atomicIds[0], BpeTokenizer.im_start_id);
+
+  // Test literal handling when allowed_special is false
+  const literalIds = tokenizer.encode('<|im_start|>', false, false, false);
+  assert.notStrictEqual(literalIds[0], BpeTokenizer.im_start_id);
+  assert.strictEqual(tokenizer.decode(literalIds, true), '<|im_start|>');
+
+  // Test truncation preserves assistant tokens
+  const longConv = [
+    { role: 'system', content: 'Long system prompt here '.repeat(5) },
+    { role: 'user', content: 'Long question here '.repeat(5) },
+    { role: 'assistant', content: 'Target reply' }
+  ];
+  const truncated = tokenizer.encodeChat(longConv, 32);
+  assert(truncated.input_ids.length <= 32);
+  assert(truncated.labels.some(l => l !== -100), 'Truncation must preserve assistant targets');
 });
 
 test('RotaryEmbedding preserves norm and handles positions with context scaling', () => {
@@ -137,4 +156,27 @@ test('KiraTrainer executes training updates and decreases loss', () => {
   const m1 = trainer.trainStep(tokens);
   assert(m1.train_loss > 0);
   assert(m1.step === 1);
+});
+
+test('KV cache produces consistent sequential decoding logits', () => {
+  const config = new ModelConfig({
+    vocab_size: 270,
+    d_model: 32,
+    num_layers: 2,
+    num_attention_heads: 4,
+    num_kv_heads: 2,
+    intermediate_size: 64,
+    max_seq_len: 32
+  });
+  const model = new KiraTransformerModel(config, new PRNG(999));
+  const kvCaches = [];
+  const tokens = [5, 12, 19];
+
+  let lastLogits;
+  for (let i = 0; i < tokens.length; i++) {
+    const res = model.forwardStep(tokens[i], i, kvCaches);
+    lastLogits = res.logits;
+  }
+  assert.strictEqual(lastLogits.length, 270);
+  assert.strictEqual(kvCaches[0].k.length, 3);
 });

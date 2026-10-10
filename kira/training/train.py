@@ -103,8 +103,8 @@ def train(config_path='configs/tiny.json', data=None, tokenizer_path='checkpoint
             for inputs, targets in group:
                 inputs, targets = inputs.to(device), targets.to(device)
                 with autocast_context(device, precision):
-                    logits, _ = model(inputs)
-                    total_loss = next_token_loss(logits, targets, reduction='sum')
+                    logits, _, aux_loss = model(inputs, return_aux_loss=True)
+                    total_loss = next_token_loss(logits, targets, reduction='sum', aux_loss=aux_loss)
                     loss = total_loss / target_count
                 loss_sum += total_loss.detach().item()
                 scaler.scale(loss).backward()

@@ -324,34 +324,61 @@ export class BpeTokenizer {
     return new BpeTokenizer(merges);
   }
 
-  encode(text, bos = false, eos = false) {
+  encode(text, bos = false, eos = false, allowed_special = false) {
     const numSpecial = BpeTokenizer.SPECIAL.length;
-    const buf = Buffer.from(text, 'utf-8');
-    let ids = [];
-    for (let i = 0; i < buf.length; i++) {
-      ids.push(buf[i] + numSpecial);
-    }
-
-    for (let m = 0; m < this.merges.length; m++) {
-      const [left, right] = this.merges[m];
-      const repl = numSpecial + 256 + m;
-      const next = [];
-      let i = 0;
-      while (i < ids.length) {
-        if (i + 1 < ids.length && ids[i] === left && ids[i + 1] === right) {
-          next.push(repl);
-          i += 2;
-        } else {
-          next.push(ids[i]);
-          i += 1;
-        }
-      }
-      ids = next;
-    }
-
     const res = [];
     if (bos) res.push(BpeTokenizer.bos_id);
-    for (const id of ids) res.push(id);
+
+    if (!text) {
+      if (eos) res.push(BpeTokenizer.eos_id);
+      return res;
+    }
+
+    const encodeOrdinary = str => {
+      const buf = Buffer.from(str, 'utf-8');
+      let ids = [];
+      for (let i = 0; i < buf.length; i++) ids.push(buf[i] + numSpecial);
+      for (let m = 0; m < this.merges.length; m++) {
+        const [left, right] = this.merges[m];
+        const repl = numSpecial + 256 + m;
+        const next = [];
+        let i = 0;
+        while (i < ids.length) {
+          if (i + 1 < ids.length && ids[i] === left && ids[i + 1] === right) {
+            next.push(repl);
+            i += 2;
+          } else {
+            next.push(ids[i]);
+            i += 1;
+          }
+        }
+        ids = next;
+      }
+      return ids;
+    };
+
+    if (allowed_special) {
+      // Recognized atomic special tokens
+      const specialTokens = BpeTokenizer.SPECIAL;
+      const regex = new RegExp('(' + specialTokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'g');
+      let lastIndex = 0;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          res.push(...encodeOrdinary(text.substring(lastIndex, match.index)));
+        }
+        const tokenStr = match[1];
+        const spId = BpeTokenizer.SPECIAL.indexOf(tokenStr);
+        res.push(spId >= 0 ? spId : BpeTokenizer.unk_id);
+        lastIndex = regex.lastIndex;
+      }
+      if (lastIndex < text.length) {
+        res.push(...encodeOrdinary(text.substring(lastIndex)));
+      }
+    } else {
+      res.push(...encodeOrdinary(text));
+    }
+
     if (eos) res.push(BpeTokenizer.eos_id);
     return res;
   }
@@ -393,8 +420,13 @@ export class BpeTokenizer {
     for (const msg of messages) {
       const role = msg.role || 'user';
       const content = msg.content || '';
-      const headerIds = this.encode(`<|im_start|>${role}\n`);
-      const bodyIds = this.encode(`${content}<|im_end|>\n`);
+
+      // Header: atomic <|im_start|> + role + \n
+      const headerIds = [BpeTokenizer.im_start_id, ...this.encode(`${role}\n`, false, false, false)];
+      // Content: safe byte-BPE (allowed_special=false)
+      const bodyIds = this.encode(content, false, false, false);
+      // End marker: atomic <|im_end|> + \n
+      const endIds = [BpeTokenizer.im_end_id, ...this.encode('\n', false, false, false)];
 
       for (const id of headerIds) {
         input_ids.push(id);
@@ -404,14 +436,25 @@ export class BpeTokenizer {
         input_ids.push(id);
         labels.push(role === 'assistant' ? id : -100);
       }
+      for (const id of endIds) {
+        input_ids.push(id);
+        labels.push(role === 'assistant' ? id : -100);
+      }
     }
-    input_ids.push(BpeTokenizer.eos_id);
-    labels.push(messages.length && messages[messages.length - 1].role === 'assistant' ? BpeTokenizer.eos_id : -100);
 
     if (max_length && input_ids.length > max_length) {
+      const rightLabels = labels.slice(0, max_length);
+      if (rightLabels.some(l => l !== -100)) {
+        return {
+          input_ids: input_ids.slice(0, max_length),
+          labels: rightLabels
+        };
+      }
+      // Slide window from the end to preserve assistant tokens
+      const start = input_ids.length - max_length;
       return {
-        input_ids: input_ids.slice(0, max_length),
-        labels: labels.slice(0, max_length)
+        input_ids: input_ids.slice(start),
+        labels: labels.slice(start)
       };
     }
     return { input_ids, labels };

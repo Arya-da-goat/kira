@@ -13,8 +13,8 @@ def evaluate(model, loader, device, precision='fp32'):
         for inputs, targets in loader:
             inputs, targets = inputs.to(device), targets.to(device)
             with autocast_context(device, precision):
-                logits, _ = model(inputs)
-                loss = next_token_loss(logits, targets, reduction='sum')
+                logits, _, aux_loss = model(inputs, return_aux_loss=True)
+                loss = next_token_loss(logits, targets, reduction='sum', aux_loss=aux_loss)
             mask = targets != -100
             loss_sum += loss.item()
             count += mask.sum().item()
