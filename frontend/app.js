@@ -143,7 +143,18 @@ $('retryConnection').onclick = refreshStatus;
 $('inspectModel').onclick = async () => {
   closeDrawer(); $('modelDialog').showModal(); await refreshStatus();
   $('modelDetails').textContent = JSON.stringify(modelStatus, null, 2);
-  const facts = modelStatus.ready ? {'Device': modelStatus.hardware.device.toUpperCase(), 'Parameters': modelStatus.parameters.toLocaleString(), 'Context': `${modelStatus.config.max_seq_len} tokens`, 'Training step': modelStatus.training_step, 'Layers': modelStatus.config.num_layers, 'Query / KV heads': `${modelStatus.config.num_attention_heads} / ${modelStatus.config.num_kv_heads}`} : {'Model': modelStatus.busy ? 'Operation in progress' : 'No checkpoint loaded'};
+  const facts = modelStatus.ready ? {
+    'Architecture': 'Decoder-only Transformer (Pre-LN)',
+    'Attention': `GQA (${modelStatus.config.num_attention_heads} Query / ${modelStatus.config.num_kv_heads} KV heads)`,
+    'Positional': 'RoPE (Rotary Position Embeddings)',
+    'Feed-Forward': modelStatus.config.ffn_type === 'moe' ? `Sparse MoE (${modelStatus.config.num_experts} experts, top-${modelStatus.config.moe_top_k})` : 'Dense SwiGLU',
+    'Parameters': `${modelStatus.parameters.toLocaleString()} (${modelStatus.config.tie_word_embeddings ? 'tied embeddings' : 'separate head'})`,
+    'Context limit': `${modelStatus.config.max_seq_len} tokens`,
+    'Layers': modelStatus.config.num_layers,
+    'Memory footprint': modelStatus.memory_estimate?.formatted_total || `${((modelStatus.parameters * 4) / 1024).toFixed(1)} KB (weights)`,
+    'Device': modelStatus.hardware?.device || 'CPU',
+    'Training step': modelStatus.training_step
+  } : {'Model': modelStatus.busy ? 'Operation in progress' : 'No checkpoint loaded'};
   $('modelFacts').replaceChildren();
   for (const [label,value] of Object.entries(facts)) { const wrapper = document.createElement('div'); wrapper.className = 'fact'; const term = document.createElement('dt'), detail = document.createElement('dd'); term.textContent = label; detail.textContent = value; wrapper.append(term,detail); $('modelFacts').append(wrapper); }
   try { plotLoss((await api('/api/metrics')).history, $('lossChart'), $('chartLegend')); }

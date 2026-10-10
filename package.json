@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": ".venv/bin/python -m backend.server",
-    "start": ".venv/bin/python -m backend.server",
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node --check server.js && node --check src/kira_engine.js && node scripts/check_frontend.mjs",
     "check": "node scripts/check_frontend.mjs",
-    "test": "node --test tests/frontend/*.test.js",
+    "test": "node --test tests/frontend/*.test.js tests/engine/*.test.js",
     "vendor": "node scripts/vendor_frontend.mjs"
   },
   "license": "MIT",
@@ -20,5 +21,8 @@
   },
   "engines": {
     "node": ">=22.12"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
   }
 }

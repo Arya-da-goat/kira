@@ -122,71 +122,90 @@ A tiny run will produce poor text: this is a real training test, not a pretraine
 - Runs remain on that machine across server restarts; load them explicitly from Train. Back up wanted checkpoints/data privately before deleting a Codespace. **Never commit them to Git or publish them on Pages.**
 - Only local loopback use is unauthenticated by default. Remote serving requires the generated token and explicit allowed Pages origin. This is a personal development lab, not hardened public model hosting.
 
-## Architecture
+## Architecture — Frontier GPT-Style Foundations
 
-`configs/tiny.json` defines the development model:
+Kira employs a modern decoder-only language model architecture based on publicly documented frontier LLM engineering principles:
 
-| Component | Default |
-|---|---|
-| Model | Autoregressive decoder-only dense Transformer |
-| Layers / width | 2 / 64 |
-| Attention | 4 query heads, 2 KV heads, head dimension 16 |
-| FFN | SwiGLU, intermediate dimension 192 |
-| Normalization | Pre-RMSNorm and final RMSNorm |
-| Positions | RoPE on Q/K, base 10,000 |
-| Context | 128 tokens |
-| Vocabulary | Up to 384; actual trained tokenizer size is authoritative |
-| Output | Tied embedding / LM head |
-
-Each block is RMSNorm → causal attention → residual → RMSNorm → SwiGLU → residual. Attention uses PyTorch scaled-dot-product attention with an explicit causal mask, including cached offsets. GQA repeats contiguous KV head groups. The cache retains rotated keys and values per layer; after prompt prefill, generation processes one token at a time. Cache memory grows with context. Context overflow is reported or generation stops at the configured limit; there is no silent truncation.
-
-## Tokenizer and datasets
-
-Deterministic byte-level BPE merges are learned from training documents. All 256 bytes provide UTF-8 coverage; `<PAD>`, `<BOS>`, `<EOS>`, `<UNK>` have separate IDs. Literal spellings in user text remain ordinary text. Invalid IDs decode as `<UNK>`; sampled invalid UTF-8 bytes display replacement characters. Vocabulary byte sequences and merge rules persist as JSON and are embedded in checkpoints.
-
-See [data/README.md](data/README.md). Inputs may be:
-
-- `.txt`: blank-line-separated documents.
-- `.json`: a string, text object, or array of strings / `{"text": "..."}` objects.
-- `.jsonl`: one string or text object per line.
-- A directory of these files, traversed recursively.
-
-Provide at least two distinct documents. Cleaning normalizes newlines, removes NULs, trims edges, and removes exact duplicates. Splitting happens by document **before** tokenizer training/chunking. Tokenizer and trainer use the same seed/validation fraction. Provenance fingerprints reject mismatched tokenizers or splits. Near duplicates and related documents require upstream deduplication/grouping to prevent semantic leakage. The in-memory loader and pure Python BPE trainer suit small corpora; large-scale work requires streaming and faster tokenization.
-
-```bash
-python -m kira.tokenizer.train --data data/private/my-corpus --output checkpoints/my-tokenizer.json
-python -m kira.training.train --data data/private/my-corpus \
-  --tokenizer checkpoints/my-tokenizer.json --output checkpoints/my-run
+```
+Text / Multi-turn Conversation
+              │
+              ▼
+   BPE Tokenizer + Chat Template (<|im_start|>role\ncontent<|im_end|>)
+              │
+              ▼
+       Token Embeddings (tied with LM head)
+              │
+              ▼
+┌──────────────────────────────────────────────┐
+│  Transformer Block (repeated N layers)       │
+│                                              │
+│  ┌─ RMSNorm (Pre-LayerNorm)                  │
+│  ├─ Causal Grouped Query Attention (GQA)     │
+│  │    ├─ Separate Q, K, V Projections        │
+│  │    ├─ Rotary Position Embeddings (RoPE)   │
+│  │    ├─ Efficient Scaled Dot-Product Attn   │
+│  │    └─ Dynamic KV Cache during decoding    │
+│  ├─ Residual Connection                      │
+│  │                                           │
+│  ├─ RMSNorm (Pre-LayerNorm)                  │
+│  ├─ Feed-Forward Layer:                      │
+│  │    ├─ Dense SwiGLU (Default), OR          │
+│  │    └─ Sparse Mixture of Experts (MoE)     │
+│  │         ├─ Learned Top-k Routing Gate     │
+│  │         ├─ SwiGLU Expert Sub-networks     │
+│  │         └─ GShard Load-Balancing Aux Loss │
+│  └─ Residual Connection                      │
+└──────────────────────────────────────────────┘
+              │
+              ▼
+        Final RMSNorm
+              │
+              ▼
+   Language-Model Output Head (Weight-Tied)
+              │
+              ▼
+   Next-Token Categorical Probability (Softmax)
+              │
+              ▼
+Autoregressive Generation (Temperature, Top-k, Top-p, Repetition Penalty)
 ```
 
-Use only data you have permission to train on. Private corpora belong in ignored `data/private/`. Original example text is dedicated to the public domain (CC0). No books or downloaded corpora are bundled.
+### Architectural Specifications
 
-## Training and checkpoints
+| Component | Default Configuration | Capabilities & Scaling Options |
+|---|---|---|
+| **Model Class** | Autoregressive decoder-only Transformer | Configurable layers, depth, dimensions, dropout |
+| **Layers / Hidden Dim** | 2 layers / width 64 | Scalable across arbitrary hidden dimensions & depth |
+| **Attention** | GQA (4 Query heads, 2 KV heads) | Grouped Query Attention reduces KV-cache memory bandwidth |
+| **Head Dimension** | 16 (`d_model / num_attention_heads`) | Must be even to support pair-wise RoPE rotations |
+| **Positional Encoding** | Rotary Positional Embeddings (RoPE) | Configurable base $\theta=10000.0$; Linear and NTK context scaling |
+| **Feed-Forward Network** | SwiGLU or Sparse MoE | Dense SwiGLU default; Sparse MoE with learned top-k gating & aux loss |
+| **Normalization** | Pre-RMSNorm + Final RMSNorm | Stable $\epsilon=10^{-5}$ prevents internal variance collapse |
+| **Context Window** | 128 tokens | Explicit bounds checking, RoPE scaling for extension |
+| **Vocabulary** | Byte-level BPE (up to 384 tokens) | Full 256-byte coverage, deterministic merges, special tokens |
+| **Output Head** | Weight-tied embedding / LM Head | Direct parameter efficiency and logit calibration |
 
-Inputs `tokens[:-1]` predict `tokens[1:]`, shifted exactly once. Each document receives BOS/EOS. Chunking preserves every next-token target; right padding uses ignored target `-100`. Cross entropy is normalized by real target tokens across each accumulation group. Training performs backward, unscales FP16 gradients, measures/clips their norm, steps AdamW, steps a warmup/cosine scheduler, and clears gradients.
+Each block applies:
+1. `x_norm = RMSNorm(x)`
+2. `x = x + Dropout(Attention(x_norm))`
+3. `x_ffn_norm = RMSNorm(x)`
+4. `x = x + Dropout(FFN(x_ffn_norm))` (where FFN is either SwiGLU or SparseMoE)
 
-Configure batch size, accumulation, learning rate, weight decay, warmup, maximum steps/epochs, clipping, precision, evaluation interval and save interval in JSON. The first step/epoch limit reached stops training. Model vocabulary size follows the actual trained tokenizer size.
+### Sparse Mixture of Experts (MoE)
 
-Checkpoints save weights, model/training configuration, embedded tokenizer/fingerprint, optimizer/scheduler/scaler state, step, epoch, next batch position, dataset fingerprint, processed target count, metrics, and Python/PyTorch device RNG states. Writes use a temporary file and atomic replacement.
+When `ffn_type: "moe"` is configured:
+- A learned linear router projects hidden states $x \in \mathbb{R}^{d_{\text{model}}}$ into expert logits $\in \mathbb{R}^{E}$.
+- Top-$k$ experts are selected per token (e.g., top-2 of 4 experts).
+- Routing weights are normalized across the selected top-$k$ experts via softmax.
+- Execution is genuinely sparse: only tokens assigned to a specific expert pass through that expert's SwiGLU network.
+- Load balancing auxiliary loss $\mathcal{L}_{\text{aux}} = \alpha \cdot E \sum_{e=1}^E f_e \cdot P_e$ prevents expert collapse and ensures uniform routing across the expert pool.
 
-- `latest.pt`: saved on validation improvement, periodic save, and clean completion.
-- `best.pt`: lowest measured validation loss so far.
-- `step-XXXXXXXX.pt`: retained at `save_interval`; manage disk retention yourself.
-- `metrics.jsonl`: measured updates; resume restores checkpoint history.
+### Fine-Tuning & Alignment Stages
 
-```bash
-# Controlled interruption without changing the planned schedule:
-python -m kira.training.train --data data/example --stop-after 40
-python -m kira.training.train --resume checkpoints/latest.pt
-```
-
-Resume restores the existing configuration/schedule; `--config` applies to new runs. Changed data is rejected. `--data NEW_LOCATION` permits identical relocated data. Resume in the same output directory to retain earlier best/periodic files. CPU exact resumption is tested with dropout and accumulation; device/library changes or nondeterministic kernels can change results. Crashes resume from the last checkpoint, not necessarily the last logged step. Load only trusted checkpoints; restricted `weights_only=True` loading reduces, but does not eliminate, risks from hostile files.
-
-Logs include token-weighted loss, held-out perplexity/accuracy, target tokens processed, pre-clipping gradient norm, learning rate used, and synchronized training tokens/sec. Throughput includes forward/backward/update work and excludes evaluation/save I/O. No benchmark scores are claimed.
-
-### Fine-tuning
-
-Continuing an unfinished pretraining run is implemented. Instruction SFT, LoRA, DPO, MoE, and multimodal training are **not implemented**, and no controls claim otherwise. A new corpus currently requires a new run/split/tokenizer; `--resume` is not an instruction-tuning pipeline.
+1. **Pretraining**: Next-token prediction minimizing cross-entropy over causal sequences: $\mathcal{L}_{\text{CE}} = -\sum \log P(x_t \mid x_{<t})$.
+2. **Supervised Instruction Fine-Tuning (SFT)**: Structured multi-turn conversation format `<|im_start|>role\ncontent<|im_end|>\n` with assistant-target masking: user and system prompt tokens receive label `-100`, computing loss strictly on assistant output tokens.
+3. **Direct Preference Optimization (DPO)**: Pairwise preference optimization between chosen ($y_w$) and rejected ($y_l$) completions:
+$$\mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = -\mathbb{E} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]$$
 
 ## Inference and evaluation
 

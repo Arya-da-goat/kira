@@ -1,0 +1,8 @@
+{
+  "name": "Kira — Local Frontier Transformer",
+  "description": "Your local personal AI. Train, inspect, and run Kira's own decoder-only Transformer with Grouped Query Attention, RoPE, SwiGLU, and Mixture-of-Experts.",
+  "prompt": "Kira local Transformer with modern GPT-style architecture",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
